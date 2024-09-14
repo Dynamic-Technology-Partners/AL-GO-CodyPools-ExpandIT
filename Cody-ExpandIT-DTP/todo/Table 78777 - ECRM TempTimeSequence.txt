@@ -1,0 +1,44 @@
+table 78777 "ECRM TempTimeSequence"
+{
+    // version EMCRM3.02
+
+    // EMCRM3.01 2012-05-14 PB * Table created for Sales 4
+    // EMCRM3.02  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+
+    fields
+    {
+        field(54; ModifiedDate; Date)
+        {
+            Caption = 'Modified Date', Comment = 'DAN="Rettet den",DEU="Änderungsdatum",ESP="Fecha últ. modificación",FRA="Date dern. modification",SVE="Uppdateringsdatum"';
+        }
+        field(5104; ModifiedTime; Time)
+        {
+            Caption = 'Modified Time', Comment = 'DAN="Rettet kl.",DEU="Änderungsuhrzeit",ESP="Hora Modificado",FRA="Heure dern. modification",SVE="Ändringstid"';
+        }
+        field(5110; RelationalPriority; Integer)
+        {
+            Caption = 'RelationalPriority', Comment = 'ESP="Prioridad Relacional"';
+        }
+        field(771; BASGuid; Integer)
+        {
+            Caption = 'BAS Guid', Comment = 'DAN="BAS GUID",DEU="BAS Code",ESP="ID del BAS",FRA="Guid BAS",SVE="BAS Guid"';
+        }
+        field(773; TableID; Integer)
+        {
+            Caption = 'TableID', Comment = 'ESP="TableID"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; ModifiedDate, ModifiedTime, RelationalPriority, BASGuid)
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

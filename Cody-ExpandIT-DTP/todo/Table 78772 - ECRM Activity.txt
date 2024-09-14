@@ -1,0 +1,123 @@
+table 78772 "ECRM Activity"
+{
+    // version EMCRM2.14
+
+    // EMCRM2.14  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+
+    fields
+    {
+        field(1; ActivityGuid; Code[20])
+        {
+            Caption = 'ActivityGuid', Comment = 'ESP="ActivityGuid"';
+        }
+        field(2; TeamGuid; Code[10])
+        {
+            Caption = 'TeamGuid', Comment = 'ESP="TeamGuid"';
+        }
+        field(3; UserGuid; Code[10])
+        {
+            Caption = 'UserGuid', Comment = 'ESP="UserGuid"';
+        }
+        field(5; ContactPersonGuid; Code[20])
+        {
+            Caption = 'ContactPersonGuid', Comment = 'ESP="ContactPersonGuid"';
+        }
+        field(6; OpportunityGuid; Code[20])
+        {
+            Caption = 'OpportunityGuid', Comment = 'ESP="OpportunityGuid"';
+        }
+        field(7; SegmentGuid; Code[20])
+        {
+            Caption = 'SegmentGuid', Comment = 'ESP="SegmentGuid"';
+        }
+        field(8; ActivityTypeGuid; Option)
+        {
+            Caption = 'ActivityTypeGuid', Comment = 'ESP="ActivityTypeGuid"';
+            OptionCaption = ' ,Meeting,Phone Call', Comment = 'DAN=" ,Møde,Telefonopkald",DEU=" ,Besprechung,Telefonat",ESP=" ,Reunión,Llamada",FRA=" ,Réunion,Appel téléphonique",SVE=" ,Möte,Telefonsamtal"';
+            OptionMembers = " ",Meeting,"Phone Call";
+        }
+        field(9; ActionDate; Date)
+        {
+            Caption = 'ActionDate', Comment = 'ESP="Fecha de Acción"';
+        }
+        field(10; ActivityStatusGuid; Option)
+        {
+            Caption = 'ActivityStatusGuid', Comment = 'ESP="ActivityStatusGuid"';
+            OptionCaption = 'Not Started,In Progress,Completed,Waiting,Postponed', Comment = 'DAN="Ikke startet,Igangsat,Afsluttet,Venter,Udsat",DEU="Nicht begonnen,In Bearbeitung,Erledigt,Warten,Zurückgestellt",ESP="No iniciado,En progreso,Completado,Esperando,Aplazado",FRA="Non démarré,En cours,Terminé,En attente,Reporté",SVE="Ej påbörjad,Pågående,Slutförd,Väntar,Uppskjuten"';
+            OptionMembers = "Not Started","In Progress",Completed,Waiting,Postponed;
+        }
+        field(11; PriorityGuid; Option)
+        {
+            Caption = 'PriorityGuid', Comment = 'ESP="PriorityGuid"';
+            OptionCaption = 'Low,Normal,High', Comment = 'DAN="Lav,Normal,Høj",DEU="Niedrig,Normal,Hoch",ESP="Baja,Normal,Alta",FRA="Faible,Normale,Haute",SVE="Låg,Normal,Hög"';
+            OptionMembers = Low,Normal,High;
+        }
+        field(12; Description; Text[50])
+        {
+            Caption = 'Description', Comment = 'ESP="Descripción"';
+        }
+        field(13; IsClosed; Boolean)
+        {
+            Caption = 'IsClosed', Comment = 'ESP="Está Cerrado"';
+        }
+        field(17; IsCancelled; Boolean)
+        {
+            Caption = 'IsCancelled', Comment = 'ESP="Está Cancelado"';
+        }
+        field(22; CompanyGuid; Code[20])
+        {
+            Caption = 'CompanyGuid', Comment = 'ESP="CompanyGuid"';
+        }
+        field(28; ActionTime; Time)
+        {
+            Caption = 'ActionTime', Comment = 'ESP="Tiempo de Acción"';
+        }
+        field(29; ActionDuration; Duration)
+        {
+            Caption = 'ActionDuration', Comment = 'ESP="Duración Acción"';
+        }
+        field(32; ModifiedDate; Date)
+        {
+            Caption = 'ModifiedDate', Comment = 'ESP="Fecha Modificación"';
+        }
+        field(33; ModifiedTime; Time)
+        {
+            Caption = 'ModifiedTime', Comment = 'ESP="Hora modificación"';
+        }
+        field(35; AppointmentLocation; Text[50])
+        {
+            Caption = 'AppointmentLocation', Comment = 'ESP="Lugar de Reunión"';
+        }
+        field(36; DoneByUserGuid; Code[10])
+        {
+            Caption = 'DoneByUserGuid', Comment = 'ESP="DoneByUserGuid"';
+        }
+        field(770; "Convert Status"; Option)
+        {
+            Caption = 'Convert Status', Comment = 'DAN="Konverteringsstatus",DEU="Umwandlungsstatus",ESP="Estado de conversión",FRA="Nouveau statut",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected', Comment = 'DAN="Ny,Overført,Afvist",DEU="Neu,umgewandelt,abgelehnt",ESP="Nuevo,Convertido,Rechazado",FRA="Nouveau,Accepté,Rejeté",SVE="Ny,Godkänd,Avbruten"';
+            OptionMembers = New,Converted,Rejected;
+        }
+        field(771; BASGuid; Integer)
+        {
+            Caption = 'BASGuid', Comment = 'ESP="BASGuid"';
+        }
+        field(772; RecordAction; Text[15])
+        {
+            Caption = 'RecordAction', Comment = 'ESP="Grabar Acción"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; BASGuid)
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

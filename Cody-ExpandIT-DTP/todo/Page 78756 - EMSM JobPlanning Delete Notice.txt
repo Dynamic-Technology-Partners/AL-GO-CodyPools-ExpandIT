@@ -1,0 +1,48 @@
+page 78756 "EMSM JobPln. Delete Notice EXP"
+{
+    // version EMSM3.02
+
+    // EMSM3.02     2015-09-09  PB * The new feature "Job Planning Update" implemented.
+
+    PageType = List;
+    SourceTable = "EMSM JobPlanning Delete Notice";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Group)
+            {
+                field(JobPlanningGuid; JobPlanningGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field("Created On"; "Created On")
+                {
+                    ApplicationArea = All;
+                }
+                field(ConvertStatus; ConvertStatus)
+                {
+                    ApplicationArea = All;
+                }
+                field(ConvertMessage; ConvertMessage)
+                {
+                    ApplicationArea = All;
+                }
+                field(AllocationMessage; AllocationMessage)
+                {
+                    ApplicationArea = All;
+                }
+                field(StatusMessage; StatusMessage)
+                {
+                    ApplicationArea = All;
+                }
+            }
+        }
+    }
+
+    actions
+    {
+    }
+}
+

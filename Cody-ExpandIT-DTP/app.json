@@ -1,0 +1,31 @@
+{
+  "id": "0e61a50e-5519-4970-a152-3c0e3469d5df",
+  "name": "ExpandIT-DTP",
+  "publisher": "ExpandIT",
+  "version": "2023.12.15.1225",
+  "brief": "This is a derivative of the original ExpandIT Connector to allow for further integration with customizations.",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "images/D365_AppLogo.png",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "23.0.0.0",
+  "idRanges": [
+    {
+      "from": 50000,
+      "to": 99999
+    }],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "12.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}

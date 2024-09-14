@@ -1,0 +1,136 @@
+page 78750 "EMI Journal Lines"
+{
+    // version EMI2.15.02
+
+    // EMI2.15.01   2011-02-10  PB  * Moved SETFILTER to the OnOpen trigger to apply to changed behavior in RTC
+    // EMI2.15.02   2012-11-01  PB  * Moved to NAV 2013 (NAVW17.00)
+    // EMI2.15.02   2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'EMI Journal Lines', Comment = 'DAN="EMI Kladdelinier",DEU="EMI Journalzeilen",ESP="Líneas de diario EMI",FRA="Lignes feuille EMI",SVE="EMI Journal Rader"';
+    InsertAllowed = false;
+    PageType = List;
+    SourceTable = "EMI Journal Line";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1160840000)
+            {
+                field("Create Date"; "Create Date")
+                {
+                    ApplicationArea = All;
+                }
+                field("Transaction Type"; "Transaction Type")
+                {
+                    ApplicationArea = All;
+                }
+                field("Transaction Sub Type"; "Transaction Sub Type")
+                {
+                    ApplicationArea = All;
+                }
+                field("Conversion Status"; "Conversion Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Conversion Text"; "Conversion Text")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("Product Guid"; "Product Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field(Description; Description)
+                {
+                    ApplicationArea = All;
+                }
+                field(Quantity; Quantity)
+                {
+                    ApplicationArea = All;
+                }
+                field("From Location Guid"; "From Location Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field("To Location Guid"; "To Location Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field("Reference No."; "Reference No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Serial No."; "Serial No.")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("BAS Client Guid"; "BAS Client Guid")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("Owner Location Guid"; "Owner Location Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field("Item Journal Template Name"; "Item Journal Template Name")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                // field("Item Journal Batch Name";"Item Journal Batch Name")
+                // {
+                //     Visible = false;
+                //     ApplicationArea = All;
+
+                //     trigger OnLookup(Text : Text) : Boolean;
+                //     begin
+                //         TESTFIELD("Item Journal Template Name");
+
+                //         ItemJournalBatch.SETRANGE("Journal Template Name", "Item Journal Template Name");
+
+                //         if PAGE.RUNMODAL(PAGE::"Item Journal Batches", ItemJournalBatch) = ACTION::LookupOK then
+                //           VALIDATE("Item Journal Batch Name", ItemJournalBatch.Name);
+                //     end;
+                // }
+            }
+        }
+    }
+
+    actions
+    {
+        area(processing)
+        {
+            group("F&unctions")
+            {
+                Caption = 'F&unctions', Comment = 'DAN="Fu&nktion",DEU="F&unktionen",ESP="F&unciones",FRA="Fonction&s",SVE="&Funktioner"';
+                action("Process lines")
+                {
+                    Caption = 'Process lines', Comment = 'DAN="Behandl Linjer",DEU="Prozesszeilen",ESP="Líneas de proceso",FRA="Traiter les lignes",SVE="Behandlar rader"';
+                    Image = ExecuteBatch;
+                    ShortCutKey = 'F9';
+                    ApplicationArea = All;
+
+                    trigger OnAction();
+                    begin
+                        TransferEMIJournalLines.SETTABLEVIEW(Rec);
+                        TransferEMIJournalLines.RUN();
+                    end;
+                }
+            }
+        }
+    }
+
+    trigger OnOpenPage();
+    begin
+        SETFILTER("Conversion Status", FORMAT("Conversion Status"::New) + '|' + FORMAT("Conversion Status"::Error));
+    end;
+
+    var
+        ItemJournalBatch: Record "Item Journal Batch";
+        TransferEMIJournalLines: Report "Process EMI Journal Lines";
+}
+

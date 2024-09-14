@@ -1,0 +1,1567 @@
+report 78770 "ECRM Import changes"
+{
+    // version EMCRM3.01.01
+
+    // EMCRM2.15  2010-09-01  JR  * #STARTREGION and #ENDREGION added to filter out code when running on 3.70
+    //            2010-09-03  JR  * Changed references to ExpandIT setup form and table to new ECRM setup form and table.
+    // 
+    // EMCRM3.01  2012-05-14  PB  * Features for Sales 4
+    // 
+    // EMCRM3.01.01           PB  * SalesHeader."Ship-to City" and SalesHeader."Ship-to Post Code" are not assigned a value
+    //                              using VALIDATE any more as this triggered an error when there are multible post codes
+    //                              with the same value in City. (A form whas opened up during a write transaction)
+    //            2012-11-01  PB  * Moved to NAV 2013 (NAVW17.00)
+
+    ProcessingOnly = true;
+    UseRequestPage = false;
+
+    dataset
+    {
+        dataitem("ECRM Company"; "ECRM Company")
+        {
+            DataItemTableView = WHERE("Convert Status" = CONST(New));
+
+            trigger OnAfterGetRecord();
+            begin
+                InsertTempECRMTimeSequence(ModifiedDate, ModifiedTime, 1, BASGuid, DATABASE::"ECRM Company");
+            end;
+        }
+        dataitem("ECRM Contact"; "ECRM Contact")
+        {
+            DataItemTableView = WHERE("Convert Status" = CONST(New));
+
+            trigger OnAfterGetRecord();
+            begin
+                InsertTempECRMTimeSequence(ModifiedDate, ModifiedTime, 1, BASGuid, DATABASE::"ECRM Contact");
+            end;
+
+            trigger OnPreDataItem();
+            begin
+                UpdateProgressIndicator(1);
+            end;
+        }
+        dataitem("ECRM Opportunity Header"; "ECRM Opportunity Header")
+        {
+            DataItemTableView = WHERE("Convert Status" = CONST(New));
+
+            trigger OnAfterGetRecord();
+            begin
+                InsertTempECRMTimeSequence(ModifiedDate, ModifiedTime, 1, BASGuid, DATABASE::"ECRM Opportunity Header");
+            end;
+
+            trigger OnPreDataItem();
+            begin
+                UpdateProgressIndicator(2);
+            end;
+        }
+        dataitem("ECRM Opportunity Line"; "ECRM Opportunity Line")
+        {
+            DataItemTableView = WHERE("Convert Status" = CONST(New));
+
+            trigger OnAfterGetRecord();
+            begin
+                InsertTempECRMTimeSequence(ModifiedDate, ModifiedTime, 2, BASGuid, DATABASE::"ECRM Opportunity Line");
+            end;
+
+            trigger OnPreDataItem();
+            begin
+                UpdateProgressIndicator(3);
+            end;
+        }
+        dataitem("ECRM TempTimeSequence"; "ECRM TempTimeSequence")
+        {
+
+            trigger OnAfterGetRecord();
+            begin
+                CurrentNoOfUpdates := CurrentNoOfUpdates + 1;
+                Progress := ROUND(CurrentNoOfUpdates / TotalNoOfUpdates * 9999, 1, '<');
+
+                WORKDATE := ECRMTempTimeSequence.ModifiedDate;
+
+                case TableID of
+                    DATABASE::"ECRM Company":
+                        begin
+                            "ECRM Company".GET(BASGuid);
+                            HandleCompany("ECRM Company");
+                        end;
+                    DATABASE::"ECRM Contact":
+                        begin
+                            "ECRM Contact".GET(BASGuid);
+                            HandleContact("ECRM Contact");
+                        end;
+                    DATABASE::"ECRM Opportunity Header":
+                        begin
+                            "ECRM Opportunity Header".GET(BASGuid);
+                            HandleCompositeOpportunityHdr("ECRM Opportunity Header");
+                        end;
+                    DATABASE::"ECRM Opportunity Line":
+                        begin
+                            "ECRM Opportunity Line".GET(BASGuid);
+                            HandleCompositeOpportunityLine("ECRM Opportunity Line");
+                        end;
+                    DATABASE::"ECRM Activity":
+                        begin
+                            //"ECRM Activity".GET(BASGuid);
+                            //HandleActivity("ECRM Activity");
+                        end;
+                    DATABASE::"ECRM Contact Mailing Group":
+                        begin
+                            //"ECRM Contact Mailing Group".GET(BASGuid);
+                            //HandleContactMailingGroup("ECRM Contact Mailing Group");
+                        end;
+                end;
+            end;
+
+            trigger OnPostDataItem();
+            begin
+                WORKDATE := TODAY;
+            end;
+
+            trigger OnPreDataItem();
+            begin
+                COMMIT;
+            end;
+        }
+    }
+
+    requestpage
+    {
+
+        layout
+        {
+        }
+
+        actions
+        {
+        }
+    }
+
+    labels
+    {
+    }
+
+    trigger OnInitReport();
+    begin
+        // The following IF statement is for use with ExpandIT Launch Utility.
+        // It assumes that ExpandIT Launch Utility logs in as 'BATCH', thus preventing
+        // the Confirm window (which otherwise would have been detected as an error)
+
+        // #STARTREGION: REMOVE IN 4.00
+        /*
+        // #ENDREGION: REMOVE IN 4.00
+        // Error message for version 4.00 and below
+        Error(
+          'If you would like to run ExpandIT Mobile Sales on Microsoft Dynamics NAV versions before 5.00 sp1, then contact ' +
+          'ExpandIT for more information. Contact information can be found at www.expandit.com.');
+        // #STARTREGION: REMOVE IN 4.00
+        */
+        // #ENDREGION: REMOVE IN 4.00
+
+
+
+        if not (USERID = 'BATCH') then begin
+            if not CONFIRM('Convert CRM transactions from ExpandIT Mobile?') then begin
+                CurrReport.QUIT();
+            end;
+        end;
+
+        TotalNoOfUpdates := 0;
+        CurrentNoOfUpdates := 0;
+        nCompanyCount := 0;
+        nContactCount := 0;
+        nActivityCount := 0;
+        nOpportunityHeader := 0;
+        nOpportunityLine := 0;
+        nMailingGroupCount := 0;
+
+        Progress := 0;
+        StatusText := 'Initializing...';
+        d.OPEN(
+          'Transferring CRM data\' +
+          '#1######################################\' +
+          '@2@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@',
+          StatusText, Progress);
+        d.UPDATE();
+
+    end;
+
+    trigger OnPostReport();
+    begin
+        // For use with scheduling using ExpandIT Launch Utility
+        if (USERID = 'BATCH') then begin
+            MESSAGE('ExpandIT Launch Utility finished');
+        end else begin
+            Progress := 9999;
+            StatusText := 'Finished';
+            d.UPDATE();
+            MESSAGE('Successfully imported changes:\' +
+                    '\' +
+                    'Companies: ' + FORMAT(nCompanyCount) + '\' +
+                    'Contacts: ' + FORMAT(nContactCount) + '\' +
+                    'Opportunity headers: ' + FORMAT(nOpportunityHeader) + '\' +
+                    'Opportunity lines: ' + FORMAT(nOpportunityLine) + '\');
+            d.CLOSE();
+        end;
+    end;
+
+    trigger OnPreReport();
+    begin
+        ECRMTempTimeSequence.DELETEALL;
+    end;
+
+    var
+        ECRMTempTimeSequence: Record "ECRM TempTimeSequence";
+        TotalNoOfUpdates: Integer;
+        CurrentNoOfUpdates: Integer;
+        nCompanyCount: Integer;
+        nContactCount: Integer;
+        nActivityCount: Integer;
+        nOpportunityHeader: Integer;
+        nOpportunityLine: Integer;
+        nMailingGroupCount: Integer;
+        strCustomerTemplateCode: Code[10];
+        d: Dialog;
+        Progress: Integer;
+        StatusText: Text[100];
+        SalesLineIsRenumberTestable: Boolean;
+
+    procedure InsertTempECRMTimeSequence(Date: Date; Time: Time; RelationalPriority: Integer; BASGuid: Integer; TableID: Integer);
+    begin
+        ECRMTempTimeSequence.INIT;
+        ECRMTempTimeSequence.ModifiedDate := Date;
+        ECRMTempTimeSequence.ModifiedTime := Time;
+        ECRMTempTimeSequence.RelationalPriority := RelationalPriority;
+        ECRMTempTimeSequence.BASGuid := BASGuid;
+        ECRMTempTimeSequence.TableID := TableID;
+        ECRMTempTimeSequence.INSERT;
+
+        TotalNoOfUpdates := TotalNoOfUpdates + 1;
+    end;
+
+    procedure HandleCompany(ECRMCompany: Record "ECRM Company");
+    var
+        Contact: Record Contact;
+        xContact: Record Contact;
+    begin
+        with ECRMCompany do begin
+            nCompanyCount := nCompanyCount + 1;
+
+            StatusText := 'Transferring Company  [BASGuid: ' + FORMAT(BASGuid) + '] - ' + CompanyGuid;
+            d.UPDATE();
+            //
+            case RecordAction of
+                'NEW':
+                    begin
+                        Contact.INIT();
+                        Contact.VALIDATE("No.", CompanyGuid);
+                        Contact.INSERT(true);
+                        xContact.GET(CompanyGuid);
+                        TransferCompanyInformation(ECRMCompany, Contact);
+                        //Contact.OnModify(xContact);
+                        Contact.MODIFY(true);
+                    end;
+                'MODIFY':
+                    begin
+                        if Contact.GET(CompanyGuid) then begin
+                            xContact.GET(CompanyGuid);
+                            TransferCompanyInformation(ECRMCompany, Contact);
+                            //Contact.OnModify(xContact);
+                            Contact.MODIFY(true);
+                        end else begin
+                            if not CompanyWasDeletedEarlier(CompanyGuid) then
+                                ERROR('Modify Company: Company ' + CompanyGuid + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                        end
+                    end;
+                'DELETE':
+                    begin
+                        if Contact.GET(CompanyGuid) then
+                            Contact.DELETE(false);
+                    end;
+            end;
+
+            VALIDATE("Convert Status", "Convert Status"::Converted);
+            MODIFY();
+        end;
+    end;
+
+    procedure HandleContact(ECRMContact: Record "ECRM Contact");
+    var
+        Contact: Record Contact;
+        xContact: Record Contact;
+    begin
+        with ECRMContact do begin
+            nContactCount := nContactCount + 1;
+            Contact.RESET();
+
+            StatusText := 'Transferring Contact  [BASGuid: ' + FORMAT(BASGuid) + '] - ' + ContactGuid;
+            d.UPDATE();
+
+            case RecordAction of
+                'NEW':
+                    begin
+                        Contact.INIT();
+                        Contact.VALIDATE("No.", ContactGuid);
+                        Contact.INSERT(true);
+                        xContact.GET(ContactGuid);
+                        TransferContactInformation(ECRMContact, Contact);
+                        //Contact.OnModify(xContact);
+                        Contact.MODIFY(true);
+                    end;
+                'MODIFY':
+                    begin
+                        if Contact.GET(ContactGuid) then begin
+                            xContact.GET(ContactGuid);
+                            TransferContactInformation(ECRMContact, Contact);
+                            //Contact.OnModify(xContact);
+                            Contact.MODIFY(true);
+                        end else begin
+                            if not ContactWasDeletedEarlier(ContactGuid) then
+                                ERROR('Modify Contact: Contact ' + ContactGuid + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                        end
+                    end;
+                'DELETE':
+                    begin
+                        if Contact.GET(ContactGuid) then begin
+                            Contact.DELETE(false);
+                        end;
+                    end;
+            end;
+
+            VALIDATE("Convert Status", "Convert Status"::Converted);
+            MODIFY();
+        end;
+    end;
+
+    procedure HandleCompositeOpportunityHdr(ECRMOpportunityHeader: Record "ECRM Opportunity Header");
+    var
+        Opportunity: Record Opportunity;
+        SalesQuoteHeader: Record "Sales Header";
+    begin
+        with ECRMOpportunityHeader do begin
+            nOpportunityHeader := nOpportunityHeader + 1;
+
+            StatusText :=
+              STRSUBSTNO('Transferring Comp. Opp. header  [BASGuid: %1] - %2 %3', BASGuid, CompositeKeyType, CompositeKey);
+            d.UPDATE();
+
+            case CompositeKeyType of
+                99:
+                    HandleOpportunityHeader(ECRMOpportunityHeader); //OpportunityHeader from Mobile Client
+                0:
+                    HandleSalesQuoteHeader(ECRMOpportunityHeader); //Sales Quote
+                1:
+                    HandleSalesOrderHeader(ECRMOpportunityHeader); //Sales Order
+                else
+                    FIELDERROR(CompositeKeyType);
+            end;
+
+            VALIDATE("Convert Status", "Convert Status"::Converted);
+            MODIFY;
+        end;
+    end;
+
+    procedure HandleCompositeOpportunityLine(ECRMOpportunityLine: Record "ECRM Opportunity Line");
+    var
+        Opportunity: Record Opportunity;
+        SalesQuoteHeader: Record "Sales Header";
+        SalesQuoteLine: Record "Sales Line";
+    begin
+        with ECRMOpportunityLine do begin
+            nOpportunityLine := nOpportunityLine + 1;
+
+            StatusText :=
+              STRSUBSTNO('Transferring Comp. Opp. line  [BASGuid: %1] - %2 %3, %4', BASGuid, CompositeKeyType, CompositeKey, LineNumber);
+            d.UPDATE();
+
+            case CompositeKeyType of
+                99:
+                    HandleOpportunityLine(ECRMOpportunityLine); //OpportunityHeader from Mobile Client
+                0:
+                    HandleSalesQuoteLine(ECRMOpportunityLine); //Sales Quote
+                1:
+                    HandleSalesOrderLine(ECRMOpportunityLine); //Sales Order
+                else
+                    FIELDERROR(CompositeKeyType);
+            end;
+
+            VALIDATE("Convert Status", "Convert Status"::Converted);
+            MODIFY;
+        end;
+    end;
+
+    procedure HandleOpportunityHeader(var ECRMOpportunityHeader: Record "ECRM Opportunity Header");
+    var
+        Opportunity: Record Opportunity;
+        TempOpportunity: Record Opportunity temporary;
+        SalesQuoteHeader: Record "Sales Header";
+        Cont: Record Contact;
+        TempOppEntry: Record "Opportunity Entry" temporary;
+    begin
+        with ECRMOpportunityHeader do begin
+            TESTFIELD(CompositeKeyType, 99);
+
+            case RecordAction of
+                'NEW':
+                    begin
+                        CreateOppWizSimulation(ECRMOpportunityHeader);
+
+                        //Get is necessary as FinishWizard (in the function above) does not return the opportunity created
+                        Opportunity.GET(ECRMOpportunityHeader.CompositeKey);
+
+                        if QuoteHeaderNeededToStoreInfo(ECRMOpportunityHeader) then begin
+                            InsertNewSalesQuoteHeader(ECRMOpportunityHeader, SalesQuoteHeader);
+                            Opportunity."Sales Document Type" := Opportunity."Sales Document Type"::Quote;
+                            Opportunity."Sales Document No." := SalesQuoteHeader."No.";
+                            Opportunity.MODIFY(true);
+                        end;
+
+                        UpdateOppWizSimulation(Opportunity, ECRMOpportunityHeader);
+                        CloseOppWizSimulation(Opportunity, ECRMOpportunityHeader);
+                    end;
+                'MODIFY':
+                    begin
+                        if Opportunity.GET(CompositeKey) then begin
+                            if Opportunity.Priority <> ECRMOpportunityHeader.PriorityGuid then begin
+                                Opportunity.VALIDATE(Priority, ECRMOpportunityHeader.PriorityGuid);
+                                Opportunity.MODIFY(true);
+                            end;
+
+                            UpdateOppWizSimulation(Opportunity, ECRMOpportunityHeader);
+
+                            if ((SalesDocumentType = SalesDocumentType::Quote) and (DocumentGuid <> '')) or
+                               QuoteHeaderNeededToStoreInfo(ECRMOpportunityHeader)
+                            then begin
+                                Opportunity.FIND;
+                                if SalesQuoteHeader.GET(SalesQuoteHeader."Document Type"::Quote, Opportunity."Sales Document No.") then begin
+                                    SalesLineIsRenumberTestable := IsSalesLineRenumberTestable(SalesQuoteHeader);
+                                    TransferSalesQuoteHeader(ECRMOpportunityHeader, SalesQuoteHeader);
+                                    ErrorIfSalesLineRenumbered(SalesLineIsRenumberTestable, SalesQuoteHeader);
+                                    SalesQuoteHeader.MODIFY;
+                                end else begin
+                                    InsertNewSalesQuoteHeader(ECRMOpportunityHeader, SalesQuoteHeader);
+                                    Opportunity."Sales Document Type" := Opportunity."Sales Document Type"::Quote;
+                                    Opportunity."Sales Document No." := SalesQuoteHeader."No.";
+                                end;
+                                Opportunity.MODIFY(true);
+                            end;
+
+                            CloseOppWizSimulation(Opportunity, ECRMOpportunityHeader);
+
+                        end else begin
+                            if not OpportunityWasDeletedEarlier(OpportunityGuid) then
+                                ERROR('Modify Opportunity: ' + CompositeKey + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                        end;
+                    end;
+                'DELETE':
+                    if Opportunity.GET(CompositeKey) then begin
+                        if SalesQuoteHeader.GET(SalesQuoteHeader."Document Type", Opportunity."Sales Document No.") then
+                            SalesQuoteHeader.DELETE(true);
+                        Opportunity.DELETE(true);
+                    end;
+            end;
+        end;
+    end;
+
+    procedure HandleOpportunityLine(ECRMOpportunityLine: Record "ECRM Opportunity Line");
+    var
+        Opportunity: Record Opportunity;
+        SalesQuoteHeader: Record "Sales Header";
+        SalesQuoteLine: Record "Sales Line";
+    begin
+        with ECRMOpportunityLine do begin
+            TESTFIELD(CompositeKeyType, 99);
+            Opportunity.RESET();
+            SalesQuoteHeader.RESET();
+            SalesQuoteLine.RESET();
+
+            if not Opportunity.GET(CompositeKey) then
+                ERROR('Opportunity not found [' + CompositeKey + '] \' +
+                      'BASGuid: ' + FORMAT(BASGuid));
+
+            if (Opportunity."Sales Document Type" <> 0) and (Opportunity."Sales Document No." <> '') then begin
+                if (not SalesQuoteHeader.GET(SalesQuoteHeader."Document Type"::Quote, Opportunity."Sales Document No."))
+                   and (ECRMOpportunityLine.RecordAction <> 'DELETE')
+                then
+                    ERROR('Opportunity found [' + CompositeKey + '] \' +
+                          '- missing Quote: [' + Opportunity."Sales Document No." + ']\' +
+                          'BASGuid: ' + FORMAT(BASGuid));
+
+            end else begin
+                // Create quote if it doesn't exist
+                if RecordAction = 'NEW' then begin
+                    SalesQuoteHeader.INIT;
+                    SalesQuoteHeader."Document Type" := SalesQuoteHeader."Document Type"::Quote;
+                    SalesQuoteHeader.INSERT(true);
+                    SetCustContactOnSalesHdr(
+                      '', Opportunity."Contact Company No.", Opportunity."Contact No.", '', SalesQuoteHeader);
+                    SalesQuoteHeader.VALIDATE("Salesperson Code", Opportunity."Salesperson Code");
+                    SalesQuoteHeader.VALIDATE("Campaign No.", Opportunity."Campaign No.");
+                    // #STARTREGION: REMOVE IN 3.70
+                    SalesQuoteHeader."Opportunity No." := Opportunity."No.";
+                    // #ENDREGION: REMOVE IN 3.70
+                    SalesQuoteHeader."Order Date" := Opportunity."Estimated Closing Date";
+                    SalesQuoteHeader."Shipment Date" := SalesQuoteHeader."Order Date";
+                    SalesQuoteHeader.VALIDATE("Prices Including VAT", false);
+                    SalesQuoteHeader.MODIFY;
+
+                    Opportunity."Sales Document Type" := Opportunity."Sales Document Type"::Quote;
+                    Opportunity."Sales Document No." := SalesQuoteHeader."No.";
+                    Opportunity.MODIFY;
+                end else
+                    if RecordAction <> 'DELETE' then
+                        ERROR('Opportunity found [' + CompositeKey + '] \' +
+                              '- missing Quote\' +
+                              'BASGuid: ' + FORMAT(BASGuid));
+            end;
+
+            case RecordAction of
+                'NEW':
+                    begin
+                        SalesQuoteLine.INIT();
+                        SalesQuoteLine.VALIDATE("Document Type", SalesQuoteHeader."Document Type");
+                        SalesQuoteLine.VALIDATE("Document No.", SalesQuoteHeader."No.");
+                        SalesQuoteLine.VALIDATE("Line No.", LineNumber);
+                        SalesQuoteLine.INSERT(true);
+                        TransferOpportunityLineInfo(ECRMOpportunityLine, SalesQuoteLine);
+                        SalesQuoteLine.MODIFY(true);
+                    end;
+                'MODIFY':
+                    begin
+                        if SalesQuoteLine.GET(
+                             SalesQuoteHeader."Document Type", SalesQuoteHeader."No.", LineNumber)
+                        then begin
+                            TransferOpportunityLineInfo(ECRMOpportunityLine, SalesQuoteLine);
+                            SalesQuoteLine.MODIFY(true);
+                        end else begin
+                            ERROR(
+                              'Modify Opportunity Line [' + CompositeKey + ',' + FORMAT(LineNumber) + '] not found!\BASGuid=' + FORMAT(BASGuid));
+                        end
+                    end;
+                'DELETE':
+                    begin
+                        if SalesQuoteLine.GET(
+                             SalesQuoteHeader."Document Type", SalesQuoteHeader."No.", LineNumber)
+                        then
+                            SalesQuoteLine.DELETE(true);
+                    end;
+            end;
+        end;
+    end;
+
+    procedure HandleSalesQuoteHeader(var ECRMOpportunityHeader: Record "ECRM Opportunity Header");
+    var
+        SalesQuoteHeader: Record "Sales Header";
+    begin
+        with ECRMOpportunityHeader do begin
+            TESTFIELD(CompositeKeyType, 0);
+
+            SalesQuoteHeader.SetHideValidationDialog(true);
+            case RecordAction of
+                'NEW':
+                    InsertNewSalesQuoteHeader(ECRMOpportunityHeader, SalesQuoteHeader);
+                'MODIFY':
+                    begin
+                        if FindSalesHeader("Document Type"::Quote, CompositeKey, SalesQuoteHeader) then begin
+                            SalesLineIsRenumberTestable := IsSalesLineRenumberTestable(SalesQuoteHeader);
+                            TransferSalesQuoteHeader(ECRMOpportunityHeader, SalesQuoteHeader);
+                            ErrorIfSalesLineRenumbered(SalesLineIsRenumberTestable, SalesQuoteHeader);
+                            SalesQuoteHeader.MODIFY;
+                        end else
+                            if not DocumentWasDeletedEarlier("Document Type"::Quote, CompositeKey) then
+                                ERROR('Modify Sales Quote: ' + CompositeKey + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                    end;
+                'DELETE':
+                    begin
+                        if FindSalesHeader(SalesQuoteHeader."Document Type"::Quote, CompositeKey, SalesQuoteHeader) then begin
+                            CloseOpportunity(SalesQuoteHeader, 'LOST', ECRMOpportunityHeader.CloseOpportunityCode, ECRMOpportunityHeader.ModifiedDate);
+                            SalesQuoteHeader.DELETE(true);
+                        end else
+                            ERROR('Delete Sales Quote: ' + CompositeKey + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                    end;
+            end;
+        end;
+    end;
+
+    procedure HandleSalesQuoteLine(ECRMOpportunityLine: Record "ECRM Opportunity Line");
+    var
+        Opportunity: Record Opportunity;
+        SalesQuoteHeader: Record "Sales Header";
+        SalesQuoteLine: Record "Sales Line";
+        ReleaseSalesDocument: Codeunit "Release Sales Document";
+        ReleaseDocAfterModifications: Boolean;
+    begin
+        with ECRMOpportunityLine do begin
+            TESTFIELD(CompositeKeyType, 0);
+            TESTFIELD(LineNumber);
+
+            SalesQuoteHeader.RESET();
+            SalesQuoteLine.RESET();
+
+            if (not FindSalesHeader(SalesQuoteHeader."Document Type"::Quote, CompositeKey, SalesQuoteHeader))
+               and (ECRMOpportunityLine.RecordAction <> 'DELETE')
+            then
+                ERROR('Quote not found: [' + CompositeKey + ']\' +
+                      'BASGuid: ' + FORMAT(BASGuid));
+
+            if SalesQuoteHeader.Status <> SalesQuoteHeader.Status::Open then begin
+                ReleaseSalesDocument.Reopen(SalesQuoteHeader);
+                ReleaseDocAfterModifications := true;
+            end else
+                ReleaseDocAfterModifications := false;
+
+            case RecordAction of
+                'NEW':
+                    begin
+                        SalesQuoteLine.INIT();
+                        SalesQuoteLine.VALIDATE("Document Type", SalesQuoteHeader."Document Type");
+                        SalesQuoteLine.VALIDATE("Document No.", SalesQuoteHeader."No.");
+                        SalesQuoteLine.VALIDATE("Line No.", LineNumber);
+                        SalesQuoteLine.INSERT(true);
+                        TransferOpportunityLineInfo(ECRMOpportunityLine, SalesQuoteLine);
+                        SalesQuoteLine.MODIFY(true);
+                    end;
+                'MODIFY':
+                    begin
+                        if SalesQuoteLine.GET(
+                             SalesQuoteHeader."Document Type", SalesQuoteHeader."No.", LineNumber)
+                        then begin
+                            TransferOpportunityLineInfo(ECRMOpportunityLine, SalesQuoteLine);
+                            SalesQuoteLine.MODIFY(true);
+                        end else begin
+                            ERROR(
+                              'Modify Sales Quote Line [' + CompositeKey + ',' + FORMAT(LineNumber) + '] not found!\BASGuid=' + FORMAT(BASGuid));
+                        end
+                    end;
+                'DELETE':
+                    begin
+                        if SalesQuoteLine.GET(SalesQuoteHeader."Document Type", SalesQuoteHeader."No.", LineNumber) then
+                            SalesQuoteLine.DELETE(true);
+                    end;
+            end;
+
+            if ReleaseDocAfterModifications and ReleasableSalesLineExists(SalesQuoteHeader) then
+                ReleaseSalesDocument.RUN(SalesQuoteHeader);
+        end;
+    end;
+
+    procedure HandleSalesOrderHeader(var ECRMOpportunityHeader: Record "ECRM Opportunity Header");
+    var
+        SalesOrderHeader: Record "Sales Header";
+    begin
+        with ECRMOpportunityHeader do begin
+            TESTFIELD(CompositeKeyType, 1);
+
+            SalesOrderHeader.SetHideValidationDialog(true);
+            case RecordAction of
+                'NEW':
+                    InsertNewSalesOrderHeader(ECRMOpportunityHeader, SalesOrderHeader);
+                'MODIFY':
+                    begin
+                        if FindSalesHeader(SalesOrderHeader."Document Type"::Order, CompositeKey, SalesOrderHeader) then begin
+                            SalesLineIsRenumberTestable := IsSalesLineRenumberTestable(SalesOrderHeader);
+                            TransferSalesOrderHeader(ECRMOpportunityHeader, SalesOrderHeader);
+                            ErrorIfSalesLineRenumbered(SalesLineIsRenumberTestable, SalesOrderHeader);
+                            SalesOrderHeader.MODIFY;
+                        end else
+                            if not DocumentWasDeletedEarlier(SalesOrderHeader."Document Type"::Order, CompositeKey) then
+                                ERROR('Modify Sales Order: ' + CompositeKey + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                    end;
+                'DELETE':
+                    begin
+                        if FindSalesHeader(SalesOrderHeader."Document Type"::Order, CompositeKey, SalesOrderHeader) then begin
+                            CloseOpportunity(SalesOrderHeader, 'LOST', ECRMOpportunityHeader.CloseOpportunityCode, ECRMOpportunityHeader.ModifiedDate);
+                            SalesOrderHeader.DELETE(true);
+                        end else
+                            ERROR('Delete Sales Order: ' + CompositeKey + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                    end;
+            end;
+        end;
+    end;
+
+    procedure HandleSalesOrderLine(ECRMOpportunityLine: Record "ECRM Opportunity Line");
+    var
+        Opportunity: Record Opportunity;
+        SalesOrderHeader: Record "Sales Header";
+        SalesOrderLine: Record "Sales Line";
+        ReleaseSalesDocument: Codeunit "Release Sales Document";
+        ReleaseDocAfterModifications: Boolean;
+    begin
+        // #STARTREGION: REMOVE IN 4.00
+        with ECRMOpportunityLine do begin
+            TESTFIELD(CompositeKeyType, 1);
+            TESTFIELD(LineNumber);
+
+            SalesOrderHeader.RESET();
+            SalesOrderLine.RESET();
+
+            if (not FindSalesHeader(SalesOrderHeader."Document Type"::Order, CompositeKey, SalesOrderHeader))
+               and (ECRMOpportunityLine.RecordAction <> 'DELETE')
+
+            then
+                ERROR('Order not found: [' + CompositeKey + ']\' +
+                      'BASGuid: ' + FORMAT(BASGuid));
+
+
+            if SalesOrderHeader.Status <> SalesOrderHeader.Status::Open then begin
+                ReleaseSalesDocument.Reopen(SalesOrderHeader);
+                ReleaseDocAfterModifications := true;
+            end else
+                ReleaseDocAfterModifications := false;
+
+            case RecordAction of
+                'NEW':
+                    begin
+                        if SalesOrderHeader."Quote No." = '' then begin // The Sales Order was not made from a Quote
+                            SalesOrderLine.INIT();
+                            SalesOrderLine.VALIDATE("Document Type", SalesOrderHeader."Document Type");
+                            SalesOrderLine.VALIDATE("Document No.", SalesOrderHeader."No.");
+                            SalesOrderLine.VALIDATE("Line No.", LineNumber);
+                            SalesOrderLine.INSERT(true);
+                            TransferOpportunityLineInfo(ECRMOpportunityLine, SalesOrderLine);
+                            SalesOrderLine.MODIFY(true);
+                        end else begin
+                            // The Sales Order was made from a Quote ("Make Order" on quote)
+                            // This means that som of the new lines m a y have been inserted already as they came from the quote
+                            if not SalesOrderLine.GET(
+                                 SalesOrderHeader."Document Type", SalesOrderHeader."No.", LineNumber)
+                            then begin
+                                SalesOrderLine.INIT();
+                                SalesOrderLine.VALIDATE("Document Type", SalesOrderHeader."Document Type");
+                                SalesOrderLine.VALIDATE("Document No.", SalesOrderHeader."No.");
+                                SalesOrderLine.VALIDATE("Line No.", LineNumber);
+                                SalesOrderLine.INSERT(true);
+                            end;
+                        end;
+
+                        TransferOpportunityLineInfo(ECRMOpportunityLine, SalesOrderLine);
+                        SalesOrderLine.MODIFY(true);
+                    end;
+                'MODIFY':
+                    begin
+                        if SalesOrderLine.GET(
+                             SalesOrderHeader."Document Type", SalesOrderHeader."No.", LineNumber)
+                        then begin
+                            TransferOpportunityLineInfo(ECRMOpportunityLine, SalesOrderLine);
+                            SalesOrderLine.MODIFY(true);
+                        end else begin
+                            ERROR(
+                              'Modify Sales Order Line [' + CompositeKey + ',' + FORMAT(LineNumber) + '] not found!\BASGuid=' + FORMAT(BASGuid));
+                        end
+                    end;
+                'DELETE':
+                    begin
+                        if SalesOrderLine.GET(SalesOrderHeader."Document Type", SalesOrderHeader."No.", LineNumber) then
+                            SalesOrderLine.DELETE(true);
+                    end;
+            end;
+
+            if ReleaseDocAfterModifications and ReleasableSalesLineExists(SalesOrderHeader) then
+                ReleaseSalesDocument.RUN(SalesOrderHeader);
+        end;
+
+        // #ENDREGION: REMOVE IN 4.00
+    end;
+
+    procedure TransferCompanyInformation(var ECRMCompanyIn: Record "ECRM Company"; var ContactOut: Record Contact);
+    var
+        ContBusRel: Record "Contact Business Relation";
+    begin
+        ContactOut.Type := ContactOut.Type::Company;
+        ContactOut.VALIDATE(Name, ECRMCompanyIn.CompanyName);
+        ContactOut."Post Code" := ECRMCompanyIn.ZipCode;
+        ContactOut.City := ECRMCompanyIn.CityName;
+        ContactOut.VALIDATE("Country/Region Code", ECRMCompanyIn.CountryGuid);
+        ContactOut.VALIDATE("E-Mail", ECRMCompanyIn.EMailAddress);
+        ContactOut.TRANSFERFIELDS(ECRMCompanyIn);
+
+        // Business relations. ECRM only defines one relation per company
+        if (not (ContBusRel.GET(ECRMCompanyIn.CompanyGuid, ECRMCompanyIn."Business Relation Code"))) then begin
+            // If a business relation exists, replace it
+            ContBusRel.SETRANGE("Contact No.", ECRMCompanyIn.CompanyGuid);
+            if (ContBusRel.FIND('-')) then begin
+                //ContBusRel.VALIDATE("Business Relation Code", ECRMCompanyIn."Business Relation Code");
+                //ContBusRel.RENAME(FALSE);
+                ContBusRel.RENAME(ECRMCompanyIn.CompanyGuid, ECRMCompanyIn."Business Relation Code");
+            end else begin
+                ContBusRel.INIT();
+                ContBusRel."Contact No." := ECRMCompanyIn.CompanyGuid;
+                ContBusRel."Business Relation Code" := ECRMCompanyIn."Business Relation Code";
+                ContBusRel.INSERT(true);
+            end;
+        end;
+    end;
+
+    procedure TransferContactInformation(var ECRMContactIn: Record "ECRM Contact"; var ContactOut: Record Contact);
+    begin
+        if (ContactOut.Type::Person <> ContactOut.Type) then begin
+            ContactOut.VALIDATE(Type, ContactOut.Type::Person);
+        end;
+        ContactOut.VALIDATE("Company No.", ECRMContactIn.CompanyGuid);
+        ContactOut.VALIDATE(Name, ECRMContactIn.ContactName);
+        ContactOut."Post Code" := ECRMContactIn.ZipCode;
+        ContactOut.City := ECRMContactIn.CityName;
+        ContactOut.VALIDATE("Country/Region Code", ECRMContactIn.CountryGuid);
+        ContactOut.VALIDATE("E-Mail", ECRMContactIn.EmailAddress);
+
+        ContactOut.TRANSFERFIELDS(ECRMContactIn);
+    end;
+
+    procedure TransferOpportunityLineInfo(var ECRMOpportunityLineIn: Record "ECRM Opportunity Line"; var SalesLineOut: Record "Sales Line");
+    begin
+        SalesLineOut.VALIDATE(Type, ECRMOpportunityLineIn.LineTypeGuid);
+        SalesLineOut.VALIDATE("No.", ECRMOpportunityLineIn.ProductGuid);
+        SalesLineOut.VALIDATE(Description, ECRMOpportunityLineIn.Description);
+        SalesLineOut.VALIDATE("Unit of Measure", ECRMOpportunityLineIn.UnitOfMeasureGuid);
+        SalesLineOut.VALIDATE(Quantity, ECRMOpportunityLineIn.Quantity);
+        SalesLineOut.VALIDATE(Amount, ECRMOpportunityLineIn.AmountTotal);
+    end;
+
+    procedure TransferSalesQuoteHeader(ECRMOpportunityHeader: Record "ECRM Opportunity Header"; var SalesQuoteHeader: Record "Sales Header");
+    var
+        ReleaseSalesDocument: Codeunit "Release Sales Document";
+        ReleaseDocAfterModifications: Boolean;
+    begin
+        with ECRMOpportunityHeader do begin
+            if SalesQuoteHeader.Status <> SalesQuoteHeader.Status::Open then begin
+                ReleaseSalesDocument.Reopen(SalesQuoteHeader);
+                ReleaseDocAfterModifications := true;
+            end else
+                ReleaseDocAfterModifications := false;
+
+
+            SetCustContactOnSalesHdr(CustomerGuid, CompanyGuid, ContactPersonGuid, SellToCustTemplateCode, SalesQuoteHeader);
+
+            if (SalesQuoteHeader."Bill-to Customer No." <> "Bill-to Customer No.") and
+               ("Bill-to Customer No." <> '')
+            then
+                SalesQuoteHeader.VALIDATE("Bill-to Customer No.", "Bill-to Customer No.");
+
+            SalesQuoteHeader."Payment Terms Code" := "Payment Terms Code";
+            SalesQuoteHeader."Customer Price Group" := "Customer Price Group";
+            SalesQuoteHeader."Invoice Disc. Code" := "Invoice Disc. Code";
+            SalesQuoteHeader."Customer Disc. Group" := "Customer Disc. Group";
+
+            if SalesQuoteHeader."Salesperson Code" <> "Sales Person" then
+                SalesQuoteHeader.VALIDATE("Salesperson Code", "Sales Person");
+            // #STARTREGION: REMOVE IN 3.70
+            SalesQuoteHeader."Opportunity No." := OpportunityGuid;
+            // #ENDREGION: REMOVE IN 3.70
+            SalesQuoteHeader.VALIDATE("Order Date", OrderDate);
+            SalesQuoteHeader.VALIDATE("Shipment Date", ShipmentDate);
+            SalesQuoteHeader.VALIDATE("Prices Including VAT", false);
+            if SalesQuoteHeader."Currency Code" <> CurrencyGuid then
+                SalesQuoteHeader.VALIDATE("Currency Code", CurrencyGuid);
+
+            if CompositeKey <> SalesQuoteHeader."No." then
+                SalesQuoteHeader.VALIDATE("External Document No.", CompositeKey);
+
+            SalesQuoteHeader.VALIDATE("Your Reference", CustomerReference);
+
+            SetShipToFields(ECRMOpportunityHeader, SalesQuoteHeader);
+
+            if ReleaseDocAfterModifications or
+               ("Document Status" = "Document Status"::Released)
+            then
+                ReleaseSalesDocument.RUN(SalesQuoteHeader);
+        end;
+    end;
+
+    procedure TransferSalesOrderHeader(ECRMOpportunityHeader: Record "ECRM Opportunity Header"; var SalesOrderHeader: Record "Sales Header");
+    var
+        ECRMSignature: Record "ECRM Signature";
+        ReleaseSalesDocument: Codeunit "Release Sales Document";
+        ReleaseDocAfterModifications: Boolean;
+    begin
+        with ECRMOpportunityHeader do begin
+            if SalesOrderHeader.Status <> SalesOrderHeader.Status::Open then begin
+                ReleaseSalesDocument.Reopen(SalesOrderHeader);
+                ReleaseDocAfterModifications := true;
+            end else
+                ReleaseDocAfterModifications := false;
+
+            SetCustContactOnSalesHdr(CustomerGuid, CompanyGuid, ContactPersonGuid, SellToCustTemplateCode, SalesOrderHeader);
+
+            if (SalesOrderHeader."Bill-to Customer No." <> "Bill-to Customer No.") and
+               ("Bill-to Customer No." <> '')
+            then
+                SalesOrderHeader.VALIDATE("Bill-to Customer No.", "Bill-to Customer No.");
+
+            SalesOrderHeader."Payment Terms Code" := "Payment Terms Code";
+            SalesOrderHeader."Customer Price Group" := "Customer Price Group";
+            SalesOrderHeader."Invoice Disc. Code" := "Invoice Disc. Code";
+            SalesOrderHeader."Customer Disc. Group" := "Customer Disc. Group";
+
+            if SalesOrderHeader."Salesperson Code" <> "Sales Person" then
+                SalesOrderHeader.VALIDATE("Salesperson Code", "Sales Person");
+            // #STARTREGION: REMOVE IN 3.70
+            SalesOrderHeader."Opportunity No." := OpportunityGuid;
+            // #ENDREGION: REMOVE IN 3.70
+            SalesOrderHeader.VALIDATE("Posting Date", WORKDATE);
+            SalesOrderHeader.VALIDATE("Document Date", OrderDate);
+            SalesOrderHeader.VALIDATE("Order Date", OrderDate);
+            SalesOrderHeader.VALIDATE("Shipment Date", ShipmentDate);
+            SalesOrderHeader.VALIDATE("Prices Including VAT", false);
+            if SalesOrderHeader."Currency Code" <> CurrencyGuid then
+                SalesOrderHeader.VALIDATE("Currency Code", CurrencyGuid);
+
+            if CompositeKey <> SalesOrderHeader."No." then
+                SalesOrderHeader.VALIDATE("External Document No.", CompositeKey);
+
+            SalesOrderHeader.VALIDATE("Your Reference", CustomerReference);
+
+            if ECRMOpportunityHeader."BMP Signature".HASVALUE then begin
+                if ECRMSignature.GET(SalesOrderHeader."Document Type"::Order, SalesOrderHeader."No.") then
+                    ECRMSignature.DELETE;
+                ECRMSignature."Document Type" := SalesOrderHeader."Document Type"::Order;
+                ECRMSignature."No." := SalesOrderHeader."No.";
+                ECRMOpportunityHeader.CALCFIELDS("BMP Signature");
+                ECRMSignature."BMP Signature" := ECRMOpportunityHeader."BMP Signature";
+                ECRMSignature.INSERT;
+            end;
+
+            SetShipToFields(ECRMOpportunityHeader, SalesOrderHeader);
+
+            if ReleaseDocAfterModifications or
+               (ECRMOpportunityHeader."Document Status" = ECRMOpportunityHeader."Document Status"::Released)
+            then
+                ReleaseSalesDocument.RUN(SalesOrderHeader);
+        end;
+    end;
+
+    procedure UpdateProgressIndicator(Index: Integer);
+    begin
+        Progress := ROUND(Index / 4 * 9999, 1, '<');
+        if Progress > 9999 then Progress := 9999;
+        d.UPDATE();
+    end;
+
+    procedure InsertNewSalesQuoteHeader(var ECRMOpportunityHeader: Record "ECRM Opportunity Header"; var SalesQuoteHeader: Record "Sales Header");
+    begin
+        if FindSalesHeader(SalesQuoteHeader."Document Type"::Quote, ECRMOpportunityHeader.CompositeKey, SalesQuoteHeader) then
+            ERROR(
+              'A Sales Quote (%1) with the same value in %2 as the Sales Quote' +
+              'the batch job would like to create has been found.\' +
+              'Dublicate values in %2 is not allowed.\' +
+              'This situation can for example occur if a record from ECRM Opportunity Header is converted more than on time.',
+              SalesQuoteHeader."No.", SalesQuoteHeader."External Document No.");
+
+        SalesQuoteHeader.INIT;
+        SalesQuoteHeader."Document Type" := SalesQuoteHeader."Document Type"::Quote;
+        SalesQuoteHeader.INSERT(true);
+        TransferSalesQuoteHeader(ECRMOpportunityHeader, SalesQuoteHeader);
+        ECRMOpportunityHeader.NewDocNoInNAV := SalesQuoteHeader."No.";
+        SalesQuoteHeader.MODIFY;
+    end;
+
+    procedure InsertNewSalesOrderHeader(var ECRMOpportunityHeader: Record "ECRM Opportunity Header"; var SalesOrderHeader: Record "Sales Header");
+    var
+        Opportunity: Record Opportunity;
+        SalesQuoteHeader: Record "Sales Header";
+        SalesQuoteToOrder: Codeunit "Sales-Quote to Order";
+    begin
+        if FindSalesHeader(SalesQuoteHeader."Document Type"::Order, ECRMOpportunityHeader.CompositeKey, SalesOrderHeader) then
+            ERROR(
+              'A Sales Order (%1) with the same value in %2 as the Sales Order' +
+              'the batch job would like to create has been found.\' +
+              'Dublicate values in %2 is not allowed.\' +
+              'This situation can for example occur if a record from ECRM Opportunity Header is converted more than on time.',
+              SalesOrderHeader."No.", SalesOrderHeader."External Document No.");
+
+        if ECRMOpportunityHeader.FromCompositeKey = '' then begin
+            //////
+            //The order is made from scratch on the client
+            //////
+            SalesOrderHeader.INIT;
+            SalesOrderHeader."Document Type" := SalesOrderHeader."Document Type"::Order;
+            SalesOrderHeader.INSERT(true);
+        end else begin
+            //////
+            //The order is made out of an opportunity or a quote (Make Order) on the client
+            //////
+
+            //Find the quote to make order from
+            case ECRMOpportunityHeader.FromCompositeKeyType of
+                99:
+                    begin
+                        Opportunity.GET(ECRMOpportunityHeader.FromCompositeKey);
+                        Opportunity.TESTFIELD("Sales Document Type", Opportunity."Sales Document Type"::Quote);
+                        Opportunity.TESTFIELD("Sales Document No.");
+                        SalesQuoteHeader.GET(SalesQuoteHeader."Document Type"::Quote, Opportunity."Sales Document No.");
+
+                        //Create a customer out of the contact if not done already
+                        SalesQuoteHeader.SetHideValidationDialog(true);
+                        SalesQuoteHeader.CheckCustomerCreated(false);
+
+                        ECRMOpportunityHeader.TESTFIELD(CloseOpportunityCode);
+                        CloseOpportunity(SalesQuoteHeader, 'WON', ECRMOpportunityHeader.CloseOpportunityCode, ECRMOpportunityHeader.ModifiedDate);
+                    end;
+                0:
+                    begin
+                        if FindSalesHeader(
+                             SalesQuoteHeader."Document Type"::Quote, ECRMOpportunityHeader.FromCompositeKey, SalesQuoteHeader)
+                        then begin
+                            //Create a customer out of the contact if not done already
+                            SalesQuoteHeader.SetHideValidationDialog(true);
+                            SalesQuoteHeader.CheckCustomerCreated(false)
+                        end else
+                            ERROR(
+                              'Could not find the Sales Quote (%1) given in %2 to "Make Order" from.',
+                              ECRMOpportunityHeader.FromCompositeKey,
+                              ECRMOpportunityHeader.FIELDCAPTION(FromCompositeKey));
+                    end;
+                else
+                    ECRMOpportunityHeader.FIELDERROR(FromCompositeKeyType);
+            end;
+
+            //Make the order out of the quote
+            SalesQuoteToOrder.SetHideValidationDialog(true);
+            SalesQuoteToOrder.RUN(SalesQuoteHeader); //The SalesOrderHeader is inserted within this funktion
+            SalesQuoteToOrder.GetSalesOrderHeader(SalesOrderHeader);
+        end;
+
+        TransferSalesOrderHeader(ECRMOpportunityHeader, SalesOrderHeader);
+        ECRMOpportunityHeader.NewDocNoInNAV := SalesOrderHeader."No.";
+        SalesOrderHeader.MODIFY;
+    end;
+
+    procedure SetCustContactOnSalesHdr(CustomerGuid: Code[20]; CompanyGuid: Code[20]; ContactPersonGuid: Code[20]; CustomerTemplate: Code[20]; var SalesHeader: Record "Sales Header");
+    var
+        Contact: Record Contact;
+        Text038: Label 'Contact %1 %2 is related to a different company than customer %3.', Comment = 'DAN="Kontakten %1 %2 er knyttet til en anden virksomhed end debitoren %3.",ESP="Contacto %1 %2 está relacionado con una empresa diferente al cliente %3.",FRA="Contact %1 %2 est liée à une société différente que le client %3."';
+        ContBusinessRelation: Record "Contact Business Relation";
+    begin
+        if (SalesHeader."Sell-to Customer No." = '') and (SalesHeader."Sell-to Contact No." = '') then begin
+            //RecordAction = INSERT
+            if CustomerGuid <> '' then
+                SalesHeader.VALIDATE("Sell-to Customer No.", CustomerGuid);
+            if ContactPersonGuid <> '' then
+                SalesHeader.VALIDATE("Sell-to Contact No.", ContactPersonGuid)
+            else
+                if (CompanyGuid <> '') then
+                    SalesHeader.VALIDATE("Sell-to Contact No.", CompanyGuid);
+        end else begin
+            //RecordAction = MODIFY
+            //A change of Customer or Company is not allowed - The expandit client follows this rule.
+            if ContactPersonGuid <> '' then begin
+                if ContactPersonGuid <> SalesHeader."Sell-to Contact No." then begin
+                    Contact.GET(ContactPersonGuid);
+                    if (SalesHeader."Sell-to Customer No." <> '') and (SalesHeader."Sell-to Contact No." <> '') then begin
+                        ContBusinessRelation.RESET;
+                        ContBusinessRelation.SETCURRENTKEY("Link to Table", "No.");
+                        ContBusinessRelation.SETRANGE("Link to Table", ContBusinessRelation."Link to Table"::Customer);
+                        ContBusinessRelation.SETRANGE("No.", SalesHeader."Sell-to Customer No.");
+                        if ContBusinessRelation.FINDFIRST then
+                            if ContBusinessRelation."Contact No." <> Contact."Company No." then
+                                ERROR(Text038, Contact."No.", Contact.Name, SalesHeader."Sell-to Customer No.");
+                    end;
+
+                    SalesHeader."Sell-to Contact No." := ContactPersonGuid;
+                    SalesHeader."Sell-to Contact" := Contact.Name;
+                    SalesHeader."Bill-to Contact No." := ContactPersonGuid;
+                    SalesHeader."Bill-to Contact" := Contact.Name;
+                end;
+            end;
+        end;
+
+        if (CustomerGuid = '') and
+           (SalesHeader."Document Type" = SalesHeader."Document Type"::Quote) and
+           (CustomerTemplate <> '') and
+           (CustomerTemplate <> SalesHeader."Sell-to Customer Template Code")
+        then
+            SalesHeader.VALIDATE("Sell-to Customer Template Code", CustomerTemplate);
+    end;
+
+    procedure SetShipToFields(ECRMOpportunityHeader: Record "ECRM Opportunity Header"; var SalesHeader: Record "Sales Header");
+    begin
+        SalesHeader.VALIDATE("Ship-to Code", ECRMOpportunityHeader."Ship-to Code");
+        SalesHeader.VALIDATE("Ship-to Name", ECRMOpportunityHeader."Ship-to Name");
+        SalesHeader.VALIDATE("Ship-to Name 2", ECRMOpportunityHeader."Ship-to Name 2");
+        SalesHeader.VALIDATE("Ship-to Address", ECRMOpportunityHeader."Ship-to Address");
+        SalesHeader.VALIDATE("Ship-to Address 2", ECRMOpportunityHeader."Ship-to Address 2");
+        SalesHeader."Ship-to City" := ECRMOpportunityHeader."Ship-to City";
+        SalesHeader.VALIDATE("Ship-to Contact", ECRMOpportunityHeader."Ship-to Contact");
+        SalesHeader."Ship-to Post Code" := ECRMOpportunityHeader."Ship-to Post Code";
+        SalesHeader.VALIDATE("Ship-to County", ECRMOpportunityHeader."Ship-to County");
+        SalesHeader.VALIDATE("Ship-to Country/Region Code", ECRMOpportunityHeader."Ship-to Country/Region Code");
+    end;
+
+    procedure CloseOpportunity(SalesHeader: Record "Sales Header"; ActionTaken: Code[4]; CloseOpportunityCode: Code[10]; ClosingDate: Date);
+    var
+        Opp: Record Opportunity;
+        OpportunityEntry: Record "Opportunity Entry";
+    begin
+        Opp.RESET;
+        Opp.SETCURRENTKEY("Sales Document Type", "Sales Document No.");
+        case SalesHeader."Document Type" of
+            SalesHeader."Document Type"::Quote:
+                Opp.SETRANGE("Sales Document Type", Opp."Sales Document Type"::Quote);
+            SalesHeader."Document Type"::Order:
+                Opp.SETRANGE("Sales Document Type", Opp."Sales Document Type"::Order);
+            else
+                SalesHeader.FIELDERROR("Document Type");
+        end;
+        Opp.SETRANGE("Sales Document No.", SalesHeader."No.");
+        Opp.SETRANGE(Status, Opp.Status::"In Progress");
+        if Opp.FINDFIRST then begin
+            OpportunityEntry.INIT;
+            OpportunityEntry.VALIDATE("Opportunity No.", Opp."No.");
+            OpportunityEntry."Sales Cycle Code" := Opp."Sales Cycle Code";
+            OpportunityEntry."Contact No." := Opp."Contact No.";
+            OpportunityEntry."Contact Company No." := Opp."Contact Company No.";
+            OpportunityEntry."Salesperson Code" := Opp."Salesperson Code";
+            OpportunityEntry."Campaign No." := Opp."Campaign No.";
+            case ActionTaken of
+                'LOST':
+                    OpportunityEntry."Action Taken" := OpportunityEntry."Action Taken"::Lost;
+                'WON':
+                    OpportunityEntry."Action Taken" := OpportunityEntry."Action Taken"::Won;
+                else
+                    ERROR('ActionTaken cannot be %1.', ActionTaken);
+            end;
+            OpportunityEntry."Calcd. Current Value (LCY)" := OpportunityEntry.GetSalesDocValue(SalesHeader);
+            OpportunityEntry."Close Opportunity Code" := CloseOpportunityCode;
+            OpportunityEntry."Date of Change" := ClosingDate;
+            //OpportunityEntry.InsertEntry(OpportunityEntry,false,false);
+
+        end;
+    end;
+
+    procedure FindSalesHeader(DocumentType: Enum "Document Type"; DocumentNo: Code[20]; var SalesHeader: Record "Sales Header"): Boolean;
+    var
+        SalesHeader2: Record "Sales Header";
+        ECRMOpportunityHeader: Record "ECRM Opportunity Header";
+    begin
+        if SalesHeader.GET(DocumentType, DocumentNo) then
+            exit(true);
+
+        // If the Quote has got a new document no in NAV that the client have not got yet, then it was saved in
+        // ECRMOpportunityHeader.NewDocNoInNAV when the quote header was inserted.
+        ECRMOpportunityHeader.SETCURRENTKEY(CompositeKeyType, CompositeKey);
+        ECRMOpportunityHeader.SETRANGE(CompositeKeyType, DocumentType);
+        ECRMOpportunityHeader.SETRANGE(CompositeKey, DocumentNo);
+        ECRMOpportunityHeader.SETFILTER(NewDocNoInNAV, '<>%1', '');
+        if ECRMOpportunityHeader.FIND('+') then
+            if SalesHeader.GET(DocumentType, ECRMOpportunityHeader.NewDocNoInNAV) then
+                exit(true);
+
+        //If the ECRMOpportunityHeader.NewDocNoInNAV could not be found (might be deleted manually) then
+        //a the Sales Header table is searched, but this is slow as there is no key on "External Document No."
+        SalesHeader2.SETRANGE("Document Type", DocumentType);
+        SalesHeader2.SETRANGE("External Document No.", DocumentNo);
+        if SalesHeader2.FIND('+') then begin
+            SalesHeader := SalesHeader2;
+            exit(true);
+        end;
+
+        exit(false);
+    end;
+
+    procedure QuoteHeaderNeededToStoreInfo(ECRMOpportunityHeader: Record "ECRM Opportunity Header"): Boolean;
+    begin
+        with ECRMOpportunityHeader do
+            exit((SellToCustTemplateCode <> '') or (CurrencyGuid <> ''));
+    end;
+
+    procedure CompanyWasDeletedEarlier(CompanyGuid: Code[20]): Boolean;
+    var
+        ECRMCompany: Record "ECRM Company";
+    begin
+        ECRMCompany.SETCURRENTKEY(CompanyGuid, RecordAction);
+        ECRMCompany.SETRANGE(CompanyGuid, CompanyGuid);
+        ECRMCompany.SETRANGE(RecordAction, 'DELETE');
+        exit(ECRMCompany.FIND('-'));
+    end;
+
+    procedure ContactWasDeletedEarlier(ContactGuid: Code[20]): Boolean;
+    var
+        ECRMContact: Record "ECRM Contact";
+    begin
+        ECRMContact.SETCURRENTKEY(ContactGuid, RecordAction);
+        ECRMContact.SETRANGE(ContactGuid, ContactGuid);
+        ECRMContact.SETRANGE(RecordAction, 'DELETE');
+        exit(ECRMContact.FIND('-'));
+    end;
+
+    procedure OpportunityWasDeletedEarlier(OpportunityGuid: Code[20]): Boolean;
+    var
+        ECRMOpportunityHeader: Record "ECRM Opportunity Header";
+    begin
+        ECRMOpportunityHeader.SETCURRENTKEY(CompositeKeyType, CompositeKey, RecordAction);
+        ECRMOpportunityHeader.SETRANGE(CompositeKeyType, 99);
+        ECRMOpportunityHeader.SETRANGE(CompositeKey, OpportunityGuid);
+        ECRMOpportunityHeader.SETRANGE(RecordAction, 'DELETE');
+        exit(ECRMOpportunityHeader.FIND('-'));
+    end;
+
+    procedure DocumentWasDeletedEarlier(DocumentType: enum "Document Type"; DocumentNo: Code[20]): Boolean;
+    var
+        ECRMOpportunityHeader: Record "ECRM Opportunity Header";
+    begin
+        ECRMOpportunityHeader.SETCURRENTKEY(CompositeKeyType, CompositeKey, RecordAction);
+        ECRMOpportunityHeader.SETRANGE(CompositeKeyType, DocumentType);
+        ECRMOpportunityHeader.SETRANGE(CompositeKey, DocumentNo);
+        ECRMOpportunityHeader.SETRANGE(RecordAction, 'DELETE');
+        exit(ECRMOpportunityHeader.FIND('-'));
+    end;
+
+    procedure ReleasableSalesLineExists(SalesHeader: Record "Sales Header"): Boolean;
+    var
+        SalesLine: Record "Sales Line";
+    begin
+        SalesLine.SETRANGE("Document Type", SalesHeader."Document Type");
+        SalesLine.SETRANGE("Document No.", SalesHeader."No.");
+        SalesLine.SETFILTER(Type, '>0');
+        SalesLine.SETFILTER(Quantity, '<>0');
+        exit(SalesLine.FIND('-'));
+    end;
+
+    procedure IsSalesLineRenumberTestable(SalesHeader: Record "Sales Header"): Boolean;
+    var
+        SalesLine: Record "Sales Line";
+    begin
+        exit(not SalesLine.GET(SalesHeader."Document Type", SalesHeader."No.", 10000));
+    end;
+
+    procedure ErrorIfSalesLineRenumbered(SalesLineIsRenumberTestable: Boolean; SalesHeader: Record "Sales Header");
+    var
+        SalesLine: Record "Sales Line";
+    begin
+        if SalesLineIsRenumberTestable then begin
+            if SalesLine.GET(SalesHeader."Document Type", SalesHeader."No.", 10000) then
+                ERROR(
+                  'A change in %1 %2 has caused a renumbering of sales lines. \' +
+                  'Renumbering of lines should not occur. Contact your dealer for further assistance.',
+                  SalesHeader."Document Type", SalesHeader."No.");
+        end;
+    end;
+
+    procedure CreateOppWizSimulation(ECRMOpportunityHeader: Record "ECRM Opportunity Header");
+    var
+        TempOpportunity: Record Opportunity temporary;
+        Cont: Record Contact;
+    begin
+        // #STARTREGION: REMOVE IN 4.00
+
+        with TempOpportunity do begin
+            DELETEALL;
+            INIT;
+            "No." := ECRMOpportunityHeader.CompositeKey;
+            "Creation Date" := ECRMOpportunityHeader.ModifiedDate;
+            ECRMOpportunityHeader.TESTFIELD(SalesCycleGuid);
+            "Sales Cycle Code" := ECRMOpportunityHeader.SalesCycleGuid;
+
+            Cont.INIT;
+            if (ECRMOpportunityHeader.ContactPersonGuid <> '') and
+               Cont.GET(ECRMOpportunityHeader.ContactPersonGuid)
+            then begin
+                VALIDATE("Contact No.", Cont."No.");
+            end else
+                if Cont.GET(ECRMOpportunityHeader.CompanyGuid) then
+                    VALIDATE("Contact No.", Cont."No.");
+
+            "Wizard Contact Name" := Cont.Name;
+            "Salesperson Code" := ECRMOpportunityHeader."Sales Person";
+
+            INSERT;
+
+            Description := ECRMOpportunityHeader.Description;
+            Priority := ECRMOpportunityHeader.PriorityGuid;
+            "Wizard Estimated Value (LCY)" := ECRMOpportunityHeader.EstimatedAmount;
+            "Wizard Chances of Success %" := ECRMOpportunityHeader.OpportunityProbability;
+            "Wizard Estimated Closing Date" := ECRMOpportunityHeader.EstimatedDate;
+
+            "Activate First Stage" :=
+              ("Wizard Estimated Value (LCY)" <> 0) and
+              ("Wizard Chances of Success %" <> 0) and
+              ("Wizard Estimated Closing Date" <> 0D);
+
+            //FinishWizard;
+        end;
+        // #ENDREGION: REMOVE IN 4.00
+    end;
+
+    procedure UpdateOppWizSimulation(Opportunity: Record Opportunity; ECRMOpportunityHeader: Record "ECRM Opportunity Header");
+    var
+        TempOppEntry: Record "Opportunity Entry" temporary;
+    begin
+        // #STARTREGION: REMOVE IN 4.00
+        //Modify the opportunity by simulating use of the Update wizard
+
+        with TempOppEntry do begin
+            //Init OppEntry
+            DELETEALL;
+            INIT;
+            VALIDATE("Opportunity No.", Opportunity."No.");
+            "Sales Cycle Code" := Opportunity."Sales Cycle Code";
+            "Contact No." := Opportunity."Contact No.";
+            "Contact Company No." := Opportunity."Contact Company No.";
+            "Salesperson Code" := Opportunity."Salesperson Code";
+            "Campaign No." := Opportunity."Campaign No.";
+
+            INSERT;
+
+            //Update values as it would have been done in the "update" wizard.
+            "Action Taken" := "Action Taken"::Updated;
+            "Sales Cycle Stage" := ECRMOpportunityHeader.SalesCycleStageGuid;
+            "Date of Change" := ECRMOpportunityHeader.ModifiedDate;
+            "Estimated Value (LCY)" := ECRMOpportunityHeader.EstimatedAmount;
+            "Chances of Success %" := ECRMOpportunityHeader.OpportunityProbability;
+            "Estimated Close Date" := ECRMOpportunityHeader.EstimatedDate;
+
+            //FinishWizard2;
+        end;
+        // #ENDREGION: REMOVE IN 4.00
+    end;
+
+    procedure CloseOppWizSimulation(Opportunity: Record Opportunity; ECRMOpportunityHeader: Record "ECRM Opportunity Header");
+    var
+        TempOppEntry: Record "Opportunity Entry" temporary;
+    begin
+        // #STARTREGION: REMOVE IN 4.00
+        //Close the opportunity by simulating use of the close wizard
+        if (ECRMOpportunityHeader.OpportunityStatusGuid in
+           [ECRMOpportunityHeader.OpportunityStatusGuid::Won, ECRMOpportunityHeader.OpportunityStatusGuid::Lost])
+           and not Opportunity.Closed
+        then begin
+            Opportunity.TESTFIELD(Closed, false);
+            with TempOppEntry do begin
+                DELETEALL;
+                INIT;
+                VALIDATE("Opportunity No.", Opportunity."No.");
+                "Sales Cycle Code" := Opportunity."Sales Cycle Code";
+                "Contact No." := Opportunity."Contact No.";
+                "Contact Company No." := Opportunity."Contact Company No.";
+                "Salesperson Code" := Opportunity."Salesperson Code";
+                "Campaign No." := Opportunity."Campaign No.";
+
+                case ECRMOpportunityHeader.OpportunityStatusGuid of
+                    ECRMOpportunityHeader.OpportunityStatusGuid::Won:
+                        TempOppEntry."Action Taken" := TempOppEntry."Action Taken"::Won;
+                    ECRMOpportunityHeader.OpportunityStatusGuid::Lost:
+                        TempOppEntry."Action Taken" := TempOppEntry."Action Taken"::Lost;
+                end;
+
+                "Close Opportunity Code" := ECRMOpportunityHeader.CloseOpportunityCode;
+
+                INSERT;
+                //FinishWizard;
+            end;
+        end;
+        // #ENDREGION: REMOVE IN 4.00
+    end;
+
+    procedure ">>>Retired functions below"();
+    begin
+    end;
+
+    procedure HandleActivity(ECRMActivity: Record "ECRM Activity");
+    var
+        ToDo: Record "To-do";
+    begin
+        with ECRMActivity do begin
+            nActivityCount := nActivityCount + 1;
+
+            StatusText := 'Transferring Actvity  [BASGuid: ' + FORMAT(BASGuid) + '] - ' + ActivityGuid;
+            d.UPDATE();
+
+            ToDo.RESET();
+            case RecordAction of
+                'NEW':
+                    begin
+                        if (ActivityTypeGuid = ActivityTypeGuid::Meeting) then begin
+                            ToDo.SETFILTER(Type, '=%1', ToDo.Type::Meeting);
+                        end;
+                        ToDo.SETFILTER("No.", ActivityGuid);
+                        ToDo.INIT();
+                        ToDo.VALIDATE("System To-do Type", ToDo."System To-do Type"::"Salesperson Attendee");
+                        ToDo.INSERT(true);
+                        ToDo.RENAME(ActivityGuid);
+                        ToDo.RESET();
+                        ToDo.GET(ActivityGuid);
+                        TransferActivityInformation(ECRMActivity, ToDo);
+                        ToDo.MODIFY(true);
+                        TransferAttendeeInformation(ECRMActivity, ToDo);
+                    end;
+                'MODIFY':
+                    begin
+                        if ToDo.GET(ActivityGuid) then begin
+                            TransferActivityInformation(ECRMActivity, ToDo);
+                            ToDo.MODIFY(true);
+                            TransferAttendeeInformation(ECRMActivity, ToDo);
+                        end else begin
+                            MESSAGE('Modify Activity: Activity ' + ActivityGuid + ' not found!\BASGuid=' + FORMAT(BASGuid));
+                        end
+                    end;
+                'DELETE':
+                    begin
+                        if ToDo.GET(ActivityGuid) then begin
+                            ToDo.DELETE(true);
+                        end;
+                    end;
+            end;
+
+            VALIDATE("Convert Status", "Convert Status"::Converted);
+            MODIFY();
+        end;
+    end;
+
+    procedure HandleContactMailingGroup(ECRMContactMailingGroup: Record "ECRM Contact Mailing Group");
+    var
+        ContactMailingGroup: Record "Contact Mailing Group";
+    begin
+        with ECRMContactMailingGroup do begin
+            nMailingGroupCount := nMailingGroupCount + 1;
+            ContactMailingGroup.RESET();
+
+            StatusText := 'Transferring Cont. Mailing group  [BASGuid: ' + FORMAT(BASGuid) + '] - ' +
+                          "Contact No." + ', ' + "Mailing Group Code";
+            d.UPDATE();
+
+            case RecordAction of
+                'NEW':
+                    begin
+                        if ContactMailingGroup.GET("Contact No.",
+                                                   "Mailing Group Code") then begin
+                            // Rem assignment already exists
+                        end else begin
+                            ContactMailingGroup.INIT();
+                            ContactMailingGroup.VALIDATE("Contact No.", "Contact No.");
+                            ContactMailingGroup.VALIDATE("Mailing Group Code", "Mailing Group Code");
+                            ContactMailingGroup.INSERT(true);
+                        end;
+                    end;
+                'MODIFY':
+                    begin
+                        if ContactMailingGroup.GET("Contact No.",
+                                                   "Mailing Group Code") then begin
+                            ContactMailingGroup.VALIDATE("Contact No.", "Contact No.");
+                            ContactMailingGroup.VALIDATE("Mailing Group Code", "Mailing Group Code");
+                            ContactMailingGroup.MODIFY(true);
+                        end else begin
+                            // Record does not exist. Ignore...
+                        end;
+                    end;
+                'DELETE':
+                    begin
+                        if ContactMailingGroup.GET("Contact No.",
+                                                   "Mailing Group Code") then begin
+                            ContactMailingGroup.DELETE(true);
+                        end;
+                    end;
+            end;
+
+            VALIDATE("Convert Status", "Convert Status"::Converted);
+            MODIFY();
+        end;
+    end;
+
+    procedure TransferActivityInformation(var ECRMActivityIn: Record "ECRM Activity"; var ToDoOut: Record "To-do");
+    begin
+        ToDoOut.VALIDATE("Salesperson Code", ECRMActivityIn.UserGuid);
+        ToDoOut.VALIDATE("Contact Company No.", ECRMActivityIn.CompanyGuid);
+        ToDoOut.VALIDATE("Contact No.", ECRMActivityIn.ContactPersonGuid);
+
+        if (ECRMActivityIn.OpportunityGuid <> ToDoOut."Opportunity No.") then begin
+            ToDoOut."Opportunity No." := ECRMActivityIn.OpportunityGuid;
+            // Validation seems to fail on Opportunity No.
+        end;
+        // The type cannot be changed if it was Meeting
+        if (ToDoOut.Type <> ToDoOut.Type::Meeting) and
+           (ECRMActivityIn.ActivityTypeGuid <> ECRMActivityIn.ActivityTypeGuid::Meeting) then begin
+            ToDoOut.VALIDATE(Type, ECRMActivityIn.ActivityTypeGuid);
+        end;
+        ToDoOut.VALIDATE(Date, ECRMActivityIn.ActionDate);
+        ToDoOut.VALIDATE("Start Time", ECRMActivityIn.ActionTime);
+        ToDoOut.VALIDATE("System To-do Type", ToDoOut."System To-do Type"::Organizer);
+
+        ToDoOut.TRANSFERFIELDS(ECRMActivityIn);
+
+        if (ECRMActivityIn.IsClosed) then begin
+            ToDoOut.Status := ToDoOut.Status::Completed;
+        end;
+
+        ToDoOut.VALIDATE("Organizer To-do No.", ECRMActivityIn.ActivityGuid);
+    end;
+
+    procedure TransferAttendeeInformation(var ECRMActivityIn: Record "ECRM Activity"; var ToDoOut: Record "To-do");
+    var
+        Attendee: Record Attendee;
+        LineNumber: Integer;
+        tmpContactInfo: Code[20];
+        ToDoForContact: Record "To-do";
+    begin
+        if (ECRMActivityIn.ContactPersonGuid <> '') then
+            tmpContactInfo := ECRMActivityIn.ContactPersonGuid
+        else
+            tmpContactInfo := ECRMActivityIn.CompanyGuid;
+
+        if (ECRMActivityIn.ActivityTypeGuid = ECRMActivityIn.ActivityTypeGuid::Meeting) then begin
+
+            // Find the next line number
+            LineNumber := 0;
+            Attendee.RESET();
+            Attendee.SETFILTER("To-do No.", '=%1', ECRMActivityIn.ActivityGuid);
+            if (Attendee.FIND('+')) then begin
+                LineNumber := Attendee."Line No.";
+                //ERROR(Attendee."Attendee No.");
+            end;
+
+            // Add Meeting organizer if not already there
+            if (ECRMActivityIn.UserGuid <> '') then begin
+                Attendee.RESET();
+                Attendee.SETFILTER("To-do No.", '=%1', ECRMActivityIn.ActivityGuid);
+                Attendee.SETFILTER("Attendee Type", '=%1', Attendee."Attendee Type"::Salesperson);
+                if (not Attendee.FIND('-')) then begin
+                    Attendee.INIT();
+                    LineNumber := LineNumber + 10000;
+                    Attendee.VALIDATE("To-do No.", ECRMActivityIn.ActivityGuid);
+                    Attendee.VALIDATE("Line No.", LineNumber);
+                    Attendee.VALIDATE("Attendee Type", Attendee."Attendee Type"::Salesperson);
+                    Attendee.VALIDATE("Attendance Type", Attendee."Attendance Type"::"To-do Organizer");
+                    Attendee.VALIDATE("Attendee No.", ECRMActivityIn.UserGuid);
+                    Attendee.INSERT(true);
+                end;
+            end;
+
+            // Add Contact to Attendee list
+            if ((ECRMActivityIn.ContactPersonGuid <> '') or (ECRMActivityIn.CompanyGuid <> '')) then begin
+                Attendee.RESET();
+                Attendee.SETFILTER("To-do No.", '=%1', ECRMActivityIn.ActivityGuid);
+                Attendee.SETFILTER("Attendee Type", '=%1', Attendee."Attendee Type"::Contact);
+                if (Attendee.FIND('-')) then begin
+                    if (Attendee."Attendee No." <> tmpContactInfo) then begin
+                        Attendee.VALIDATE("Attendee No.", tmpContactInfo);
+                        Attendee.MODIFY(true);
+                    end;
+                end else begin
+                    Attendee.INIT();
+                    LineNumber := LineNumber + 10000;
+                    Attendee.VALIDATE("To-do No.", ECRMActivityIn.ActivityGuid);
+                    Attendee.VALIDATE("Line No.", LineNumber);
+                    Attendee.VALIDATE("Attendee Type", Attendee."Attendee Type"::Contact);
+                    Attendee.VALIDATE("Attendance Type", Attendee."Attendance Type"::Required);
+                    Attendee.VALIDATE("Attendee No.", tmpContactInfo);
+                    Attendee.INSERT(true);
+                end;
+            end;
+        end;
+
+        // Now create Contacts To-Do entry if required:
+        ToDoForContact.RESET();
+        ToDoForContact.SETRANGE("Organizer To-do No.", ECRMActivityIn.ActivityGuid);
+        ToDoForContact.SETRANGE("System To-do Type", ToDoForContact."System To-do Type"::"Contact Attendee");
+        if not ToDoForContact.FIND('-') then begin
+            ToDoForContact.INIT();
+            ToDoForContact.INSERT(true);
+        end else begin
+            if tmpContactInfo = '' then ToDoForContact.DELETE(true);
+        end;
+        if tmpContactInfo <> '' then begin
+            ToDoForContact.TRANSFERFIELDS(ToDoOut, false);
+            ToDoForContact.VALIDATE("System To-do Type", ToDoForContact."System To-do Type"::"Contact Attendee");
+            ToDoForContact.VALIDATE("Contact No.", tmpContactInfo);
+            ToDoForContact.MODIFY(true);
+        end;
+    end;
+}
+

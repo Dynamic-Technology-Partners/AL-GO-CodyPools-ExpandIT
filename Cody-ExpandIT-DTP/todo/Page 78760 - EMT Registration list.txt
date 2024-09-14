@@ -1,0 +1,180 @@
+page 78760 "EMT Registration list"
+{
+    // version EMT2.13.01
+
+    // EMT2.13.01  2012-11-01  PB  * Moved to NAV 2013 (NAVW17.00)
+    // EMT2.13.01  2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'EMT Registration list', Comment = 'DAN="EMT Kladdelinie",DEU="EMT Registrationsliste",ESP="Lista de registros en EMT",FRA="Liste durée enregristrée EMT",SVE="EMT Registration list"';
+    DeleteAllowed = false;
+    InsertAllowed = false;
+    PageType = List;
+    SourceTable = "EMT Registration";
+    SourceTableView = SORTING("User Guid", "Sort Index");
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1)
+            {
+                field(Guid; Guid)
+                {
+                    ApplicationArea = All;
+                }
+                field(Date; Date)
+                {
+                    ApplicationArea = All;
+                }
+                field("Transfer Status"; "Transfer Status")
+                {
+                    ApplicationArea = All;
+                    trigger OnValidate();
+                    begin
+                        if (xRec."Transfer Status" <> "Transfer Status") and ("Transfer Status" <> "Transfer Status"::"Manual Rejected") then
+                            if not CONFIRM(Text000, true, FIELDCAPTION("Transfer Status"), FORMAT("Transfer Status")) then
+                                ERROR('');
+                    end;
+                }
+                field("Sort Index"; "Sort Index")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("Item Type Guid"; "Item Type Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field("Item Guid"; "Item Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field("Unit Of Measure"; "Unit Of Measure")
+                {
+                    ApplicationArea = All;
+                }
+                field("Project Guid"; "Project Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field("Customer Guid"; "Customer Guid")
+                {
+                    ApplicationArea = All;
+                }
+                field("Dimension1 (Phase)"; "Dimension1 (Phase)")
+                {
+                    ApplicationArea = All;
+                }
+                field("Dimension2 (Task)"; "Dimension2 (Task)")
+                {
+                    ApplicationArea = All;
+                }
+                field("Dimension3 (Step)"; "Dimension3 (Step)")
+                {
+                    ApplicationArea = All;
+                }
+                field(Quantity; Quantity)
+                {
+                    ApplicationArea = All;
+                }
+                field(Comment; Comment)
+                {
+                    ApplicationArea = All;
+                }
+                field("List Price"; "List Price")
+                {
+                    ApplicationArea = All;
+                }
+                field("Line Total"; "Line Total")
+                {
+                    ApplicationArea = All;
+                }
+                field("Total Incl Tax"; "Total Incl Tax")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("Approved By"; "Approved By")
+                {
+                    ApplicationArea = All;
+                }
+                field("Created Date"; "Created Date")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("Modified Date"; "Modified Date")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("Journal Template Name"; "Journal Template Name")
+                {
+                    ApplicationArea = All;
+                }
+                field("Journal Batch Name"; "Journal Batch Name")
+                {
+                    ApplicationArea = All;
+                }
+            }
+        }
+    }
+
+    actions
+    {
+        area(processing)
+        {
+            group("F&unctions")
+            {
+                Caption = 'F&unctions', Comment = 'DAN="Fu&nktion",DEU="F&unktionen",ESP="F&unciones",FRA="Fonction&s",SVE="Fu&nktion"';
+                action("Show only &New and Error")
+                {
+                    Caption = 'Show only &New and Error', Comment = 'DAN="&Vis kun Ny og Fejl status",DEU="Zeige nur &neu und Fehler",ESP="Mostrar solo &Nuevos y errores",FRA="&Afficher seulement nouvelles et erreurs",SVE="&Visa bara nya och felaktiga"';
+                    Image = FilterLines;
+                    ApplicationArea = All;
+
+                    trigger OnAction();
+                    begin
+                        CLEAR(Rec);
+                        SETFILTER("Transfer Status", FORMAT("Transfer Status"::Error) + '|' + FORMAT("Transfer Status"::New));
+                    end;
+                }
+                separator(Separator50)
+                {
+                }
+                action("Transfer to &Jobs")
+                {
+                    Caption = 'Transfer to &Jobs', Comment = 'DAN="&Overfør til Sager",DEU="Übertrage zu &Aufgaben",ESP="Transferir a traba&jos",FRA="Transferer vers &Projets",SVE="&Överför till projekt"';
+                    Image = Export;
+                    ApplicationArea = All;
+
+                    trigger OnAction();
+                    var
+                        JobJournalTemplate: Record "Job Journal Template";
+                        JobJournalBatch: Record "Job Journal Batch";
+                    begin
+                        if not (JobJournalTemplate.GET("Journal Template Name") and
+                                JobJournalBatch.GET("Journal Template Name", "Journal Batch Name"))
+                        then
+                            ERROR(Text001,
+                                  FIELDCAPTION("Journal Template Name"),
+                                  FIELDCAPTION("Journal Batch Name"));
+
+                        if CONFIRM(Text002, true) then begin
+                            COMMIT;
+                            CODEUNIT.RUN(CODEUNIT::"Transfer EMT Registration", Rec);
+                        end;
+                    end;
+                }
+            }
+        }
+    }
+
+    var
+        EMTReg: Record "EMT Registration";
+        D: Dialog;
+        Text000: Label 'Are you sure you want to change %1 to %2', Comment = 'DAN="Er du sikker på at du vil ændre %1 til %2",DEU="Sind Sie sicher zu ändern %1 nach %2 ?",ESP="Estás seguro que quieres cambiar %1 a %2",FRA="Etes-vous sûre de vouloir changer %1 en %2 ?",SVE="Är du säker attdu vill ändra %1 till %2"';
+        Text001: Label 'Please select %1 and %2 on the line before transferring it.', Comment = 'DAN="Vælg %1 og %2 før du overfører den.",DEU="Bitte wählen Sie %1 und %2 auf den Zeilen bevor Sie übertragen.",ESP="Por favor, selecciona %1 y %2 en la línea antes de transferirla.",FRA="Veuilez choisir %1 et %2 sur la ligne avant le transfert.",SVE="Välj %1 och %2 på raden innan du överför den."';
+        Text002: Label 'Do you want to trasfer the selected registration to the Job Journal?', Comment = 'DAN="Ønsker du at overføre den valgte linie til sagskladden?",DEU="Wünschen Sie die ausgewählten Registrationen in das Aufgabenjournal zu übertragen?",ESP="¿Quieres transferir el registro seleccionado al diario de trabajos?",FRA="Voulez-vous transferer la durée enregristrée sélectionée vers la feuille projet ?",SVE="Vill du överföra den valda registreringen till jobbjournalen?"';
+}
+

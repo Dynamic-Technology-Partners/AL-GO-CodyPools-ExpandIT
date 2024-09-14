@@ -1,0 +1,33 @@
+page 78762 "EMT Employees per Job"
+{
+    // version EMT2.13
+
+    // EMT2.13 2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels.
+
+    Caption = 'EMT Employees per Job', Comment = 'DAN="EMT Medarbejder pr. Sag",DEU="EMT Mitarbeiter per Aufgabe",ESP="Empleados por trabajo en EMT",FRA="Salariés par projet EMT",SVE="EMT anställda per projekt"';
+    PageType = List;
+    SourceTable = "EMT Employees per Job";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1)
+            {
+                field("Job No."; "Job No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Employee No."; "Employee No.")
+                {
+                    ApplicationArea = All;
+                }
+            }
+        }
+    }
+
+    actions
+    {
+    }
+}
+

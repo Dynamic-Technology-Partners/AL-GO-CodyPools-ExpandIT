@@ -1,0 +1,42 @@
+table 78776 "ECRM Setup"
+{
+    // version EMCRM2.15
+
+    // EMCRM2.15  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+
+    fields
+    {
+        field(1; "Primary Key"; Code[10])
+        {
+            Caption = 'Primary Key', Comment = 'ESP="Clave Primaria"';
+        }
+        field(5051; "Sell-to Customer Template Code"; Code[10])
+        {
+            Caption = 'Sell-to Customer Template Code', Comment = 'DAN="Kundeskabelonkode",DEU="Verk. an Deb.-Vorlagencode",ESP="Venta a-Cód. plant. cliente",FRA="Code modèle donneur d''ordre",SVE="Förs. kundmallkod"';
+            TableRelation = "Customer Template";
+        }
+        field(5052; WonCloseOpportunityCode; Code[10])
+        {
+            Caption = 'Won Close Opportunity Code', Comment = 'DAN="Vundet lead lukkekode",DEU="Gewonnener Verkaufschancenabschlusscode",ESP="Cód. Oportunidad cerrada ganada",FRA="Code fin opportunité gagnée",SVE="Avslutskod vunnen affärsmöjlighet"';
+            TableRelation = "Close Opportunity Code" WHERE(Type = CONST(Won));
+        }
+        field(5053; LostCloseOpportunityCode; Code[10])
+        {
+            Caption = 'Lost Close Opportunity Code', Comment = 'DAN="Tabt lead lukkekode",DEU="Verlorener Verkaufschancenabschlusscode",ESP="Cód. Oportunidad cerrada perdida",FRA="Code fin opportunité perdue",SVE="Avslutskod förlorad affärsmöjlighet"';
+            TableRelation = "Close Opportunity Code" WHERE(Type = CONST(Lost));
+        }
+    }
+
+    keys
+    {
+        key(Key1; "Primary Key")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

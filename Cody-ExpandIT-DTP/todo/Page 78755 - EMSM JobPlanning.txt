@@ -1,0 +1,99 @@
+page 78755 "EMSM JobPlanning EXP"
+{
+    // version EMSM3.02
+
+    // EMSM3.02     2015-09-09  PB * The new feature "Job Planning Update" implemented.
+
+    PageType = List;
+    SourceTable = "EMSM JobPlanning";
+
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Group)
+            {
+                field(JobPlanningGuid; JobPlanningGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(JobPlanningType; JobPlanningType)
+                {
+                    ApplicationArea = All;
+                }
+                field(Guid_X; Guid_X)
+                {
+                    ApplicationArea = All;
+                }
+                field(UserGuid; UserGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(StatusGuid; StatusGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(StartDate; StartDate)
+                {
+                    ApplicationArea = All;
+                }
+                field(StartTime; StartTime)
+                {
+                    ApplicationArea = All;
+                }
+                field(FinishDate; FinishDate)
+                {
+                    ApplicationArea = All;
+                }
+                field(FinishTime; FinishTime)
+                {
+                    ApplicationArea = All;
+                }
+                field(ConvertStatus; ConvertStatus)
+                {
+                    ApplicationArea = All;
+                }
+                field(ConvertMessage; ConvertMessage)
+                {
+                    ApplicationArea = All;
+                }
+                field(AllocationMessage; AllocationMessage)
+                {
+                    ApplicationArea = All;
+                }
+                field(StatusMessage; StatusMessage)
+                {
+                    ApplicationArea = All;
+                }
+                field(ConvertedOn; ConvertedOn)
+                {
+                    ApplicationArea = All;
+                }
+                field(ConvertedBy; ConvertedBy)
+                {
+                    ApplicationArea = All;
+                }
+            }
+        }
+    }
+
+    actions
+    {
+        area(processing)
+        {
+            action("Process JobPlanning Entries")
+            {
+                ApplicationArea = All;
+
+                trigger OnAction();
+                var
+                    EMSMProcessJobPlanningData: Codeunit "EMSM Proc JobPlanning Data EXP";
+                begin
+                    EMSMProcessJobPlanningData.ProcessJobPlanningEntries(true, true, true, true, false);
+                end;
+            }
+        }
+    }
+}
+

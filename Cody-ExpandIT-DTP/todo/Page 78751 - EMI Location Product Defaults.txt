@@ -1,0 +1,47 @@
+page 78751 "EMI Location Product Defaults"
+{
+    // version EMI2.13
+
+    // EMI2.13 2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels.
+
+    Caption = 'EMI Location Product Defaults', Comment = 'DAN="EMI Lakation/Vare normallager",DEU="Lokation-Produkt Vorgabe",ESP="Localizaciones de producto por defecto en EMI",FRA="Magasin Article valeurs par défaut EMI",SVE="EMI Location Product Defaults"';
+    PageType = List;
+    PopulateAllFields = true;
+    SourceTable = "EMI Location Product Defaults";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1160840000)
+            {
+                field("Location Code"; "Location Code")
+                {
+                    Visible = false;
+                    ApplicationArea = All;
+                }
+                field("Item No."; "Item No.")
+                {
+                    ApplicationArea = All;
+                }
+                field(Description; Description)
+                {
+                    ApplicationArea = All;
+                }
+                field("Reorder Quantity"; "Reorder Quantity")
+                {
+                    ApplicationArea = All;
+                }
+                field("Safety Quantity"; "Safety Quantity")
+                {
+                    ApplicationArea = All;
+                }
+            }
+        }
+    }
+
+    actions
+    {
+    }
+}
+

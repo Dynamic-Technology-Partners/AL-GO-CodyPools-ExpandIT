@@ -1,0 +1,145 @@
+page 78772 "ECRM Activity List"
+{
+    // version EMCRM2.15.01
+
+    // EMCRM2.15.01  2011-02-10  PB  * Moved SETFILTER to the OnOpen trigger to apply to changed behavior in RTC.
+    // EMCRM2.15.01  2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    InsertAllowed = false;
+    PageType = List;
+    SourceTable = "ECRM Activity";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1160840000)
+            {
+                field(BASGuid; BASGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(RecordAction; RecordAction)
+                {
+                    ApplicationArea = All;
+                }
+                field("Convert Status"; "Convert Status")
+                {
+                    ApplicationArea = All;
+                }
+                field(ActivityGuid; ActivityGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(TeamGuid; TeamGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(UserGuid; UserGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(ContactPersonGuid; ContactPersonGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(OpportunityGuid; OpportunityGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(SegmentGuid; SegmentGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(ActivityTypeGuid; ActivityTypeGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(ActionDate; ActionDate)
+                {
+                    ApplicationArea = All;
+                }
+                field(ActivityStatusGuid; ActivityStatusGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(PriorityGuid; PriorityGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(Description; Description)
+                {
+                    ApplicationArea = All;
+                }
+                field(IsClosed; IsClosed)
+                {
+                    ApplicationArea = All;
+                }
+                field(IsCancelled; IsCancelled)
+                {
+                    ApplicationArea = All;
+                }
+                field(CompanyGuid; CompanyGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(ActionTime; ActionTime)
+                {
+                    ApplicationArea = All;
+                }
+                field(ActionDuration; ActionDuration)
+                {
+                    ApplicationArea = All;
+                }
+                field(ModifiedDate; ModifiedDate)
+                {
+                    ApplicationArea = All;
+                }
+                field(ModifiedTime; ModifiedTime)
+                {
+                    ApplicationArea = All;
+                }
+                field(AppointmentLocation; AppointmentLocation)
+                {
+                    ApplicationArea = All;
+                }
+                field(DoneByUserGuid; DoneByUserGuid)
+                {
+                    ApplicationArea = All;
+                }
+            }
+            field(bShowAll; bShowAll)
+            {
+                Caption = '&Show All', Comment = 'DAN="&Vis alle",DEU="&Alle anzeigen",ESP="&Muestra todos",FRA="Affic&her tout",SVE="&Visa alla"';
+                ApplicationArea = All;
+
+                trigger OnValidate();
+                begin
+                    bShowAllOnPush;
+                end;
+            }
+        }
+    }
+
+    actions
+    {
+    }
+
+    trigger OnOpenPage();
+    begin
+        SETFILTER("Convert Status", '<>1');
+    end;
+
+    var
+        bShowAll: Boolean;
+
+    local procedure bShowAllOnPush();
+    begin
+        if (bShowAll) then begin
+            SETFILTER("Convert Status", '');
+        end else begin
+            SETFILTER("Convert Status", '<>1');
+        end;
+    end;
+}
+

@@ -1,0 +1,80 @@
+table 78752 "EMI Location Product Defaults"
+{
+    // version EMI2.13
+
+    Caption = 'EMI Location Product Defaults', Comment = 'DAN="EMI Lakation/Vare normallager",DEU="EMI Lokations-Produkt Standardwert",ESP="Valores por defecto de localizaciones de productos EMI",FRA="Magasin Article valeurs par défaut EMI",SVE="EMI Location Product Defaults"';
+
+    fields
+    {
+        field(1; "Location Code"; Code[10])
+        {
+            Caption = 'Location Code', Comment = 'DAN="Lokationskode",DEU="Lokations-Code",ESP="Código de localización",FRA="Code magasin",SVE="Platskod"';
+            TableRelation = Location;
+        }
+        field(2; "Item No."; Code[20])
+        {
+            Caption = 'Item No.', Comment = 'DAN="Varenr.",DEU="Artikel-Nr.",ESP="Núm. de producto",FRA="N° article",SVE="Artikelnummer"';
+            TableRelation = Item;
+
+            trigger OnValidate();
+            begin
+                Item.GET("Item No.");
+                Description := Item.Description;
+            end;
+        }
+        field(3; "Reorder Quantity"; Decimal)
+        {
+            Caption = 'Reorder Quantity', Comment = 'DAN="Genbestil Antal",DEU="Nachbestellungsmenge",ESP="Cantidad de reordenación",FRA="Quantité de réappro.",SVE="Återbeställ antal"';
+            DecimalPlaces = 0 : 5;
+
+            trigger OnValidate();
+            begin
+                if "Reorder Quantity" <> xRec."Reorder Quantity" then begin
+                    if "Safety Quantity" > 0 then begin
+                        if "Safety Quantity" > "Reorder Quantity" then begin
+                            "Safety Quantity" := "Reorder Quantity";
+                        end;
+                    end else begin
+                        "Safety Quantity" := "Reorder Quantity";
+                    end;
+                end;
+            end;
+        }
+        field(4; "Safety Quantity"; Decimal)
+        {
+            Caption = 'Safety Quantity', Comment = 'DAN="Sikkerhedslager",DEU="Sichere Menge",ESP="Cantidad de seguridad",FRA="Stock de sécurité",SVE="Säkerhetsantal"';
+            DecimalPlaces = 0 : 5;
+
+            trigger OnValidate();
+            begin
+                if "Safety Quantity" > "Reorder Quantity" then
+                    "Safety Quantity" := "Reorder Quantity";
+            end;
+        }
+        field(5; Description; Text[30])
+        {
+            Caption = 'Description', Comment = 'DAN="Beskrivelse",DEU="Beschreibung",ESP="Descripción",FRA="Désignation",SVE="Beskrivning"';
+            Editable = false;
+        }
+    }
+
+    keys
+    {
+        key(Key1; "Location Code", "Item No.")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+
+    trigger OnInsert();
+    begin
+        Item.GET("Item No.");
+    end;
+
+    var
+        Item: Record Item;
+}
+

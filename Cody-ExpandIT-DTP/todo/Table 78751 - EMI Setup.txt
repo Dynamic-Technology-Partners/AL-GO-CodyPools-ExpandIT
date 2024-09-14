@@ -1,0 +1,136 @@
+table 78751 "EMI Setup"
+{
+    // version EMI2.15.02
+
+    // EMI2.15.01   2011-02-22  PB  * New fields and InitValues added to support the request page of report 750
+    // NEXT                     PB  * Receive feature added.
+    // EMI2.15.02  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'EMI Setup', Comment = 'DAN="EMI Opsætning",DEU="EMI Einrichtung",ESP="EMI Configuración",FRA="Paramètres EMI",SVE="EMI Inställning"';
+
+    fields
+    {
+        field(1; "Primary Key"; Code[10])
+        {
+            Caption = 'Primary Key', Comment = 'DAN="Primary Key",DEU="Primärschlüssel",ESP="Clave primaria",FRA="Clé primaire",SVE="Primärnyckel"';
+        }
+        field(2; "Item Journal Template Name"; Code[10])
+        {
+            Caption = 'Item Journal Template Name', Comment = 'DAN="Varekladdetypenavn",DEU="Artikeljournal Vorlagenname",ESP="Nombre de la plantilla del diario de productos",FRA="Nom modèle feuille article",SVE="Artikel Journal Mall Namn"';
+            TableRelation = "Item Journal Template";
+        }
+        field(3; "Item Journal Batch Name"; Code[10])
+        {
+            Caption = 'Item Journal Batch Name', Comment = 'DAN="Varekladdenavn",DEU="Artikeljournal Stapelname",ESP="Nombre del paquete de diario de productos",FRA="Nom feuille article",SVE="Artikel Journal Batch Namn"';
+            TableRelation = "Item Journal Batch".Name WHERE("Journal Template Name" = FIELD("Item Journal Template Name"));
+        }
+        field(4; "Use Transit Location"; Boolean)
+        {
+            Caption = 'Use Transit Location', Comment = 'DAN="Benyt transitlokation",DEU="Nutze Transportlokation",ESP="Usar Localización de Tránsito",FRA="Utiliser magasin de transit",SVE="Använd överförings ställe"';
+        }
+        field(5; "Transit Location Code"; Code[10])
+        {
+            Caption = 'Transit Location Code', Comment = 'DAN="Transitlokationskode",DEU="Transportlokations Code",ESP="Código de Localización de tránsito",FRA="Code magasin de transit",SVE="Åverförings ställe kod"';
+            TableRelation = Location;
+        }
+        field(6; "Post Journal After Transfer"; Boolean)
+        {
+            Caption = 'Post Journal After Transfer', Comment = 'DAN="Postér kladde efter overførsel",DEU="Post Journal After Transfer        ",ESP="Enviar Diario después de transferir",FRA="Valider jounal après transfert",SVE="Postjournal efter överföring"';
+        }
+        field(7; "Transfer-From Code"; Code[10])
+        {
+            Caption = 'Transfer From-location Code', Comment = 'DAN="Overflyt fra lokationskode",DEU="Transport von Lokationscode",ESP="Código de transferencia desde localización",FRA="Code magasin de départ",SVE="Överför från-platskod"';
+            TableRelation = Location;
+        }
+        field(8; "Delete after transfer"; Boolean)
+        {
+            Caption = 'Delete after transfer', Comment = 'DAN="Slet efter overførsel",DEU="Löschen nach Transport",ESP="Borrar después de transferir",FRA="Supprimer après transfert",SVE="Radera efter överföring"';
+        }
+        field(9; "Journal Document No."; Code[20])
+        {
+            Caption = 'Journal Document No.', Comment = 'DAN="Kladde dokumentnr.",DEU="Journal Dokumenten-Nr.",ESP="Num. de documento de diario",FRA="N° doc. feuille",SVE="Journaldokument Nr."';
+        }
+        field(10; "Order Transit Location Code"; Code[10])
+        {
+            Caption = 'Order Transit Location Code', Comment = 'DAN="Ordre Transitkode",DEU="Auftragstransportlokationscode",ESP="Código de la petición de transferencia de localización",FRA="Code magasin commande transit",SVE="Order överföring platskod"';
+        }
+        field(11; "Post Transfer Order Receipt"; Boolean)
+        {
+            Caption = 'Post Transfer Order Receive', Comment = 'DAN="Bogfør modt. af Overflyt.",DEU="Transportauftrag erhalten",ESP="Enviar la recepción de petición de transferencia",FRA="Valider réception de commande transit",SVE="Post Överföring Order Mottag"';
+            InitValue = true;
+        }
+        field(12; "Post Sales Order Shipment"; Boolean)
+        {
+            Caption = 'Post Sales Order Shipment', Comment = 'DAN="Bofgør salgsordre levering",DEU="Versand ausgeführt",ESP="Enviar el despacho del pedido de ventas",FRA="Valider l''expédition",SVE="Post Försäljning Order Leverans"';
+            InitValue = true;
+        }
+        field(13; "Post Service Order"; Boolean)
+        {
+            Caption = 'Post Service Order', Comment = 'DAN="Post Service Order",DEU="Serviceauftrag ausgeführt",ESP="Enviar el pedido de Servicio",FRA="Valider commande service",SVE="Post Serviceorder"';
+        }
+        field(14; "Item Reclass. Journal Template"; Code[10])
+        {
+            Caption = 'Item Reclass. Journal Template', Comment = 'DAN="Vareomposterings-kladdetypenavn",DEU="Artikel Umlagerungs Buch.-Blatt Vorlage",ESP="Plantilla del diario de reclas. de productos",FRA="Modèle feuille reclassement article",SVE="Omklassificering artikeljournal Mall"';
+        }
+        field(15; "Item Reclass. Journal Batch"; Code[10])
+        {
+            Caption = 'Item Reclass. Journal Batch', Comment = 'DAN="Vareomposterings-kladdenavn",DEU="Artikel Umlagerungs Buch.-Blatt Journal",ESP="Paquete de diario de reclas. de productos",FRA="Nom feuille reclassement article",SVE="Omklassificering artikeljournal Batch"';
+        }
+        field(16; "Phys. Invent. Journal Template"; Code[10])
+        {
+            Caption = 'Phys. Invent. Journal Template', Comment = 'DAN="Lageropgørelses-kladdetypenavn",DEU="Phys. Inventurjournalvorlage",ESP="Plantilla de diario del inventario físico",FRA="Modèle feuille inventaire",SVE="Fysisk Lager Journalmall "';
+        }
+        field(17; "Phys. Invent. Journal Batch"; Code[10])
+        {
+            Caption = 'Phys. Invent. Journal Batch', Comment = 'DAN="Lageropgørelses-kalddenavn",DEU="Phys. Inventurjournalstapel",ESP="Paquete de diario del inventario físico",FRA="Nom feuille inventaire",SVE="Fysisk Lager Journalbatch"';
+        }
+        field(18; "Reclass. Journal Document No."; Code[20])
+        {
+            Caption = 'Reclass. Journal Document No.', Comment = 'DAN="Vareomposteringnumre",DEU="Umlagerungs Buch.-Blatt Dokumenten-Nr.",ESP="Num. de documento del diario de reclas.",FRA="N° doc. feuille reclassement article",SVE="Omklassificering artikeljournal Dokument Nr."';
+        }
+        field(19; "Phys. Journal Document No."; Code[20])
+        {
+            Caption = 'Phys. Journal Document No.', Comment = 'DAN="Lageropgørelseskladdenumre",DEU="Phys. Journaldokumenten-Nr.",ESP="Núm. de documento del diario físico",FRA="N° doc. feuille inventaire",SVE="Fysisk Journaldokument Nr."';
+        }
+        field(20; "Post Phys. Invent. Journal"; Boolean)
+        {
+            Caption = 'Post Phys. Invent. Journal', Comment = 'ESP="Registrar Diario de Inventario Físico"';
+            InitValue = true;
+        }
+        field(21; "Post Transfer Order Shipment"; Boolean)
+        {
+            Caption = 'Post Transfer Order Shipment', Comment = 'ESP="Registrar Envío de Pedido de Transferencia"';
+            InitValue = true;
+        }
+        field(22; "Post Item Reclass. Journal"; Boolean)
+        {
+            Caption = 'Post Item Reclass. Journal', Comment = 'ESP="Registrar Diario de Reclasificación de Producto"';
+            InitValue = true;
+        }
+        field(23; "Print Sales Order Shipment"; Boolean)
+        {
+            Caption = 'Print Sales Order Shipment', Comment = 'ESP="Imprimir Envío de Pedido de Ventas"';
+            InitValue = true;
+        }
+        field(24; "Post Purchase Order Receipt"; Boolean)
+        {
+            Caption = 'Post Purchase Order Receipt', Comment = 'ESP="Registrar Recibo de Pedido de Compra"';
+        }
+        field(25; "Print Purchase Order Receipt"; Boolean)
+        {
+            Caption = 'Print Purchase Order Receipt', Comment = 'ESP="Imprimir Recibo de Pedido de Compra"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; "Primary Key")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

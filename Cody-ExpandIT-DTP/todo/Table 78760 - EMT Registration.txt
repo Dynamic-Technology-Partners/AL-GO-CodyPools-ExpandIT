@@ -1,0 +1,198 @@
+table 78760 "EMT Registration"
+{
+    // version EMT2.15.04
+
+    // EMT         2003-02-15  NA  * Changed field sized for Guid, Ref. Guid, Macro Name.
+    // 
+    // EMT2.15.04  2011-02-10  PB  * Removed the Table Relation in the Dimension fields as the
+    //                               Tables related to dos not exist anymore.
+    // EMT2.15.05  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'EMT Registration', Comment = 'DAN="EMT Registrering",DEU="EMT Registration",ESP="Registro de EMT",FRA="Durée enregristrée EMT",SVE="EMT Registration"';
+
+    fields
+    {
+        field(1; Guid; Text[50])
+        {
+            Caption = 'Guid', Comment = 'DAN="GUID",DEU="Anleitung",ESP="ID",FRA="GUID",SVE="Styrning"';
+        }
+        field(2; "Ref. Guid"; Text[50])
+        {
+            Caption = 'Ref. Guid', Comment = 'DAN="Ref. GUID",DEU="Ref. Anleitung",ESP="ID. de referencia",FRA="GUID référence",SVE="Ref.styrning"';
+        }
+        field(3; "Sort Index"; Integer)
+        {
+            Caption = 'Sort Index', Comment = 'DAN="Sorteringsindex",DEU="Sortierungsindex",ESP="Índice de ordenamiento",FRA="Index de tri",SVE="Sorteringsindex"';
+        }
+        field(4; "User Guid"; Text[38])
+        {
+            Caption = 'User Guid', Comment = 'DAN="Bruger GUID",DEU="Nutzeranleitung",ESP="ID del usuario",FRA="GUID utilisateur",SVE="Användarstyrning"';
+            TableRelation = Employee;
+        }
+        field(5; "Customer Guid"; Text[38])
+        {
+            Caption = 'Customer Guid', Comment = 'DAN="Kunde GUID",DEU="Kundenanleitung",ESP="ID de cliente",FRA="GUID client",SVE="Kundstyrning"';
+            TableRelation = Customer;
+        }
+        field(6; "Project Guid"; Text[38])
+        {
+            Caption = 'Project Guid', Comment = 'DAN="Projekt GUID",DEU="Projektanleitung",ESP="ID de proyecto",FRA="GUID projet",SVE="Projektstyrning"';
+            TableRelation = Job;
+        }
+        field(9; "Item Type Guid"; Text[38])
+        {
+            Caption = 'Item Type Guid', Comment = 'DAN="Varetype GUID",DEU="Artikeltyp Anleitung",ESP="ID de tipo producto",FRA="GUID type article",SVE="Artikeltypstyrning"';
+            Description = 'Resource, Item, Account';
+        }
+        field(11; "Unit Of Measure"; Text[38])
+        {
+            Caption = 'Unit Of Measure', Comment = 'DAN="Enhed",DEU="Maßeinheit",ESP="Unidad de medida",FRA="Unité",SVE="Enhet"';
+        }
+        field(12; "Item Guid"; Text[38])
+        {
+            Caption = 'Item Guid', Comment = 'DAN="Varenr.",DEU="Artikel Anleitung",ESP="ID del producto",FRA="GUID article",SVE="Artikelstyrning"';
+            TableRelation = IF ("Item Type Guid" = CONST('0')) Resource."No."
+            ELSE
+            IF ("Item Type Guid" = CONST('1')) Item."No."
+            ELSE
+            IF ("Item Type Guid" = CONST('2')) "G/L Account"."No.";
+        }
+        field(13; Date; Date)
+        {
+            Caption = 'Date', Comment = 'DAN="Dato",DEU="Datum",ESP="Fecha",FRA="Date",SVE="Datum"';
+        }
+        field(14; Quantity; Decimal)
+        {
+            BlankNumbers = DontBlank;
+            Caption = 'Quantity', Comment = 'DAN="Antal",DEU="Menge",ESP="Cantidad",FRA="Quantité",SVE="Antal"';
+            DecimalPlaces = 0 :;
+        }
+        field(15; Comment; Text[50])
+        {
+            Caption = 'Comment', Comment = 'DAN="Kommentar",DEU="Bemerkung",ESP="Comentario",FRA="Commentaires",SVE="Kommentar"';
+        }
+        field(16; "Currency Guid"; Text[38])
+        {
+            Caption = 'Currency Guid', Comment = 'DAN="Valutakode",DEU="Anleitung Währungen",ESP="ID de moneda",FRA="GUID devise",SVE="Valutastyrning"';
+        }
+        field(17; "Payment Guid"; Text[38])
+        {
+            Caption = 'Payment Guid', Comment = 'DAN="Betalingskode",DEU="Zahlungsanleitung",ESP="ID de pago",FRA="GUID règlement",SVE="Betalningsstyrning"';
+        }
+        field(18; "Invoice Level"; Text[38])
+        {
+            Caption = 'Invoice Level', Comment = 'DAN="Fakturerbar",DEU="Inventurstufe",ESP="Nivel de Factura",FRA="Niveau facture",SVE="Fakturanivå"';
+        }
+        field(19; "Project Reg Status Guid"; Text[38])
+        {
+            Caption = 'Project Reg Status Guid', Comment = 'DAN="Status GUID",DEU="Anleitung Projektreg.-Status",ESP="ID de Estado de Registro del proyecto",FRA="GUID statut projet reg",SVE="Projektregstatusstyrning"';
+        }
+        field(20; "Macro Name"; Text[50])
+        {
+            Caption = 'Macro Name', Comment = 'DAN="Makronavn",DEU="Macro-Name",ESP="Nombre de macro",FRA="Nom macro",SVE="Makronamn"';
+        }
+        field(21; "Version No."; Integer)
+        {
+            Caption = 'Version No.', Comment = 'DAN="Versionsnr.",DEU="Versions-Nr.",ESP="Num. de versión",FRA="N° version",SVE="Versionsnr"';
+        }
+        field(22; "List Price"; Decimal)
+        {
+            Caption = 'List Price', Comment = 'DAN="Listepris",DEU="Listenpreis",ESP="Lista de precios",FRA="Prix",SVE="Listpris"';
+        }
+        field(23; "Line Total"; Decimal)
+        {
+            Caption = 'Line Total', Comment = 'DAN="Linjebeløb",DEU="Zeilen gesamt",ESP="Total de líneas",FRA="Total",SVE="Radtotal"';
+        }
+        field(24; "Total Incl Tax"; Decimal)
+        {
+            Caption = 'Total Incl Tax', Comment = 'DAN="I alt inkl. moms",DEU="Gesamt incl. MWSt.",ESP="Total Imp. Inc.",FRA="Total TTC",SVE="Summa inkl moms"';
+        }
+        field(25; "Active Version"; Boolean)
+        {
+            Caption = 'Active Version', Comment = 'DAN="Aktiv version",DEU="aktive Version",ESP="Versión activa",FRA="Version courante",SVE="Aktiv Version"';
+        }
+        field(26; "Approved By"; Text[38])
+        {
+            Caption = 'Approved By', Comment = 'DAN="Godkendt af",DEU="genähmigt von",ESP="Aprobado por",FRA="Approuvé par",SVE="Godkänd av"';
+            TableRelation = Employee;
+        }
+        field(27; "Customer Name"; Text[50])
+        {
+            Caption = 'Customer Name', Comment = 'DAN="Debitornavn",DEU="Kundenname",ESP="Nombre de cliente",FRA="Nom client",SVE="Kundnamn"';
+        }
+        field(28; "Project Name"; Text[50])
+        {
+            Caption = 'Project Name', Comment = 'DAN="Projektnavn",DEU="Projektname",ESP="Nombre de proyecto",FRA="Nom projet",SVE="Projektnamn"';
+        }
+        field(31; "Created Date"; Date)
+        {
+            Caption = 'Created Date', Comment = 'DAN="Oprettet Dato",DEU="Erzeugtes Datum",ESP="Fecha de creación",FRA="Créé le",SVE="Skapat datum"';
+        }
+        field(32; "Created By"; Text[38])
+        {
+            Caption = 'Created By', Comment = 'DAN="Oprettet Af",DEU="Erzeugt von",ESP="Creado por",FRA="Créé par",SVE="Skapad av"';
+            TableRelation = Employee;
+        }
+        field(33; "Modified Date"; Date)
+        {
+            Caption = 'Modified Date', Comment = 'DAN="Rettet den",DEU="Korrigiert am",ESP="Fecha últ. modificación",FRA="Date dern. modification",SVE="Uppdateringsdatum"';
+        }
+        field(34; "Modified By"; Text[38])
+        {
+            Caption = 'Modified By', Comment = 'DAN="Rettet af",DEU="Verändert von",ESP="Modificado por",FRA="Dernière modification par",SVE="Ändrad av"';
+            TableRelation = Employee;
+        }
+        field(40; "Dimension1 (Phase)"; Text[38])
+        {
+            Caption = 'Dimension1 (Phase)', Comment = 'DAN="Dimension1 (Hovedaktivitet)",DEU="Dimension1 (Phase)",ESP="Dimensión1 (Fase)",FRA="Axe principal 1 (phase)",SVE="Dimension1 (Fas)"';
+        }
+        field(41; "Dimension2 (Task)"; Text[38])
+        {
+            Caption = 'Dimension2 (Task)', Comment = 'DAN="Dimension2 (Underaktivitet)",DEU="Dimension2 (Aufgabe)",ESP="Dimensión2 (Tarea)",FRA="Axe principal 2 (tâche)",SVE="Dimension2 (Uppgift)"';
+        }
+        field(42; "Dimension3 (Step)"; Text[38])
+        {
+            Caption = 'Dimension3 (Step)', Comment = 'DAN="Dimension3 (Delaktivitet)",DEU="Dimension3 (Schritt)",ESP="Dimensión3 (Paso)",FRA="Axe principal 3 (étape)",SVE="Dimension3 (Steg)"';
+        }
+        field(760; "Transfer Status"; Option)
+        {
+            Caption = 'Transfer Status', Comment = 'DAN="Overførselsstatus",DEU="Transferstatus",ESP="Estado de transferencia",FRA="Statut de transfert",SVE="Överföringssstatus"';
+            OptionCaption = 'New,Transferred,Error,Manual Rejected', Comment = 'DAN="Ny,Overført,Fejl,Afvist",DEU="Neu,umgewandelt,Fehler,manuell abgewiesen",ESP="Nuevo,Transferido,Error,Rechazado manualmente",FRA="Nouveau,Transféré,Erreur,Rejeté manuellement",SVE="Ny,Överförd,Fel,Manuell Avvisad"';
+            OptionMembers = New,Transferred,Error,"Manual Rejected";
+        }
+        field(761; "Journal Template Name"; Code[10])
+        {
+            Caption = 'Journal Template Name', Comment = 'DAN="Kladdetypenavn",DEU="Journalvorlagenname",ESP="Nombre de la plantilla de diario",FRA="Nom modèle feuille",SVE="Journalmallnamn"';
+            TableRelation = "Job Journal Template".Name;
+        }
+        field(762; "Journal Batch Name"; Code[10])
+        {
+            Caption = 'Journal Batch Name', Comment = 'DAN="Kladdenavn",DEU="Journalstapelname",ESP="Nombre del paquete de diario",FRA="Nom feuille",SVE="Journal batchnamn"';
+            TableRelation = "Job Journal Batch".Name WHERE("Journal Template Name" = FIELD("Journal Template Name"));
+        }
+    }
+
+    keys
+    {
+        key(Key1; Guid)
+        {
+        }
+        key(Key2; "Ref. Guid")
+        {
+        }
+        key(Key3; Date)
+        {
+        }
+        key(Key4; "Transfer Status")
+        {
+        }
+        key(Key5; "User Guid", "Sort Index")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

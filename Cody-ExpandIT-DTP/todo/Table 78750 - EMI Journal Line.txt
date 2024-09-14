@@ -1,0 +1,141 @@
+table 78750 "EMI Journal Line"
+{
+    // version EMI2.15.03
+
+    // EMI2.15.01 :  TransactionGuid extended to 50 characters
+    // 
+    // EMI2.15.02   2011-02-22  PB  * Transaction Group ID Added
+    // EMI2.15.03   2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'EMI Journal Line', Comment = 'DAN="EMI Kladdelinie",DEU="EMI Journalzeilen",ESP="EMI Línea de Diario",FRA="Ligne feuille EMI",SVE="EMI Journalrad"';
+
+    fields
+    {
+        field(1; "Transaction Guid"; Text[50])
+        {
+            Caption = 'Transaction Guid', Comment = 'DAN="Transaktions GUID",DEU="Führende Transaktionen",ESP="ID de la transacción",FRA="GUID Transaction",SVE="Transaktions Guid"';
+        }
+        field(2; "Transaction Type"; Text[38])
+        {
+            Caption = 'Transaction Type', Comment = 'DAN="Transaktionstype",DEU="Transaktionen Typ",ESP="Tipo de la Transacción",FRA="Nature transaction",SVE="Transaktionstyp"';
+        }
+        field(3; "Transaction Sub Type"; Text[38])
+        {
+            Caption = 'Transaction Sub Type', Comment = 'DAN="Transaktionsundertype",DEU="Transaktionen Untertyp",ESP="Subtipo de transacción",FRA="Détail nature transaction",SVE="Transaktionsundertyp"';
+        }
+        field(4; Description; Text[50])
+        {
+            Caption = 'Description', Comment = 'DAN="Beskrivelse",DEU="Beschreibung",ESP="Descripción",FRA="Désignation",SVE="Beskrivning"';
+        }
+        field(5; "Product Guid"; Code[20])
+        {
+            Caption = 'Product Guid', Comment = 'DAN="Varenr.",DEU="Produktanleitung",ESP="ID de Producto",FRA="GUID produit",SVE="Produkt Guid"';
+            TableRelation = Item;
+        }
+        field(6; Quantity; Decimal)
+        {
+            Caption = 'Quantity', Comment = 'DAN="Antal",DEU="Menge",ESP="Cantidad",FRA="Quantité",SVE="Antal"';
+        }
+        field(7; "From Location Type"; Text[38])
+        {
+            Caption = 'From Location Type', Comment = 'DAN="Fra Lokationstype",DEU="Von Lokationstyp",ESP="Tipo de Localización Origen",FRA="Type magasin d''origine",SVE="Från plats typ"';
+        }
+        field(8; "From Location Guid"; Code[10])
+        {
+            Caption = 'From Location Guid', Comment = 'DAN="Fra Lokationskode",DEU="Von führender Lokation",ESP="ID de Localización Origen",FRA="GUID magasin d''origine",SVE="Från plats Guid"';
+        }
+        field(9; "To Location Type"; Text[38])
+        {
+            Caption = 'To Location Type', Comment = 'DAN="Til Lokationstype",DEU="Nach Lokationstyp",ESP="Tipo de localización Destino",FRA="Type magasin destination",SVE="Till plats typ"';
+        }
+        field(10; "To Location Guid"; Code[10])
+        {
+            Caption = 'To Location Guid', Comment = 'DAN="Til Lokationskode",DEU="Nach führender Lokation",ESP="ID de localización Destino",FRA="GUID magasin destination",SVE="Till plats Guid"';
+        }
+        field(11; "Reference No."; Text[50])
+        {
+            Caption = 'Reference No.', Comment = 'DAN="Referencenummer",DEU="Referenz-Nr.",ESP="Num. de Referencia",FRA="N° référence",SVE="Referens Nr."';
+        }
+        field(12; "Serial No."; Code[20])
+        {
+            Caption = 'Serial No.', Comment = 'DAN="Serienr.",DEU="Serien-Nr.",ESP="Num. de Serie",FRA="N° de série",SVE="Serie Nr."';
+        }
+        field(13; "Create Date"; DateTime)
+        {
+            Caption = 'Create Date', Comment = 'DAN="Oprettet Dato",DEU="Erstellungsdatum",ESP="Crear Fecha",FRA="Créer le",SVE="Skapad datum"';
+        }
+        field(14; "Conversion Status"; Option)
+        {
+            Caption = 'Conversion Status', Comment = 'DAN="Konverteringsstatus",DEU="Gesprächsstatus",ESP="Estado de conversión",FRA="Statut de transformation",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected,Error', Comment = 'DAN="Ny,Overført,Afvist,Fejl",DEU="Neu,umgewandelt,abgelehnt,Fehler",ESP="Nuevo,Convertido,Rechazado,Error",FRA="Nouveau,Accepté,Rejeté,Erreur",SVE="Ny,Konverterad,Avvisad,Fel"';
+            OptionMembers = New,Converted,Rejected,Error;
+        }
+        field(15; "Quantity Previous"; Decimal)
+        {
+            Caption = 'Quantity Previous', Comment = 'DAN="Antal (Før)",DEU="vorige Menge",ESP="Cantidad previa",FRA="Quantité (Avant)",SVE="Antal Föregående"';
+        }
+        field(16; "BAS Client Guid"; Text[38])
+        {
+            Caption = 'BAS Client Guid', Comment = 'DAN="BAS Klient GUID",DEU="BAS Nutzer-Anleitung",ESP="ID del cliente BAS",FRA="GUID client BAS",SVE="BAS klient Guid"';
+        }
+        field(17; "Owner Location Guid"; Code[10])
+        {
+            Caption = 'Owner Location Guid', Comment = 'DAN="Ejer Lokationskode",DEU="Anleitung Inhaber Lokation",ESP="ID de la localización del propietario",FRA="GUID propriétaire magasin",SVE="Ägarens plats Guid"';
+        }
+        field(18; "Sort Index"; Integer)
+        {
+            Caption = 'Sort Index', Comment = 'DAN="Sorteringsindex",DEU="Sortierungsindex",ESP="Índice de Ordenamiento",FRA="Index de tri",SVE="Sortera Index"';
+        }
+        field(19; "Item Journal Template Name"; Code[10])
+        {
+            Caption = 'Item Journal Template Name', Comment = 'DAN="Varekladdetypenavn",DEU="Artikeljournal Vorlagenname",ESP="Nombre de la plantilla del diario de productos",FRA="Nom modèle feuille article",SVE="Artikel Journal Mall Namn"';
+            TableRelation = "Item Journal Template";
+
+            trigger OnValidate();
+            begin
+                if "Item Journal Template Name" <> xRec."Item Journal Template Name" then
+                    "Item Journal Batch Name" := '';
+            end;
+        }
+        field(20; "Item Journal Batch Name"; Code[10])
+        {
+            Caption = 'Item Journal Batch Name', Comment = 'DAN="Varekladdenavn",DEU="Artikeljournal Stapelname",ESP="Nombre del paquete de diario de productos",FRA="Nom feuille article",SVE="Artikel Journal Batch Namn"';
+            TableRelation = "Item Journal Batch".Name WHERE("Journal Template Name" = FIELD("Item Journal Template Name"));
+        }
+        field(21; "Conversion Text"; Text[250])
+        {
+            Caption = 'Conversion Text', Comment = 'DAN="Konverteringstekst",DEU="Gesprächstext",ESP="Texto de conversión",FRA="Text de transformation",SVE="Konverteringstext"';
+        }
+        field(5400; "Lot No."; Code[20])
+        {
+            Caption = 'Lot No.', Comment = 'DAN="Lotnr.",ESP="Nº lote",FRA="N° lot"';
+        }
+        field(5401; "Line no."; Integer)
+        {
+            Caption = 'Line No.', Comment = 'DAN="Linjenr.",ESP="Nº línea",FRA="N° ligne"';
+        }
+        field(5402; "Transaction Group By"; Text[50])
+        {
+            Caption = 'Transaction Group By', Comment = 'ESP="Agrupación Transacción"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; "Transaction Guid")
+        {
+        }
+        key(Key2; "Conversion Status", "Create Date", "Transaction Type", "Transaction Sub Type", "Reference No.", "Line no.")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+
+    var
+        ItemJournalBatch: Record "Item Journal Batch";
+        ItemJournalTemplate: Record "Item Journal Template";
+}
+

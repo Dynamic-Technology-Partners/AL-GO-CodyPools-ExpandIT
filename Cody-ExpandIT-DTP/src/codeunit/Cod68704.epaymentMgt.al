@@ -1,0 +1,678 @@
+/// <summary>
+/// Codeunit e-payment Mgt (ID 68704).
+/// </summary>
+codeunit 68704 "e-payment Mgt"
+{
+    // version EIS5.04.01,EPAY1.4.01
+
+    // EIS2.01  2006-10-06  RSP * In renew, set the EPaymentOCX.Amount to support DIBS Renew procedure
+    //                            for 'Dankort' and 'VisaDankort'
+    // 
+    // EIS3.02  2009-01-22  JR  * In BatchCapture a call to CALCFIELDS was added for the customer ledger entries amount field.
+    // 
+    // EIS4.01  2010-09-07  JR  * Regions introduced for backward compatibility.
+    // EIS4.02.02
+    //          2012-11-01  PB  * Moved to NAV 2013 (NAVW17.00)
+    // EIS5.04.01  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Permissions = TableData "Sales Invoice Header" = rm;
+
+    trigger OnRun();
+    begin
+    end;
+
+    var
+        PaymentMethod: Record "Payment Method";
+        NewEPaymentEntry: Record "e-payment Entry EXP";
+        EPaymentProvider: Record "e-payment Provider EXP";
+        InternetShopSetup: Record "ExpandIT Setup EXP";
+        CardIDPage: Page "Enter Card ID EXP";
+        // EPaymentOCX : OCX "{D89153CD-9E92-11D3-AD11-005056C35C4F}:'ExpandIT.Payment'";
+        //TODO: FIX Epayment
+        CardNumber: Code[20];
+        ExpiryMonth: Integer;
+        ExpiryYear: Integer;
+        TEXT000: Label 'Total clearing amount is %1.', Comment = 'DAN="Total clearingsbeløb er %1.",DEU="Der gesamt verrechnete Betrag ist is %1.",ESP="Importe Total Aceptado %1.",FRA="Montant total accepté : %1.",SVE="Totalt godkänt belopp är %1."';
+        TEXT001: Label 'Clearing of %1 on %2 %3 was not possible\Error Description:\%4', Comment = 'DAN="Clearing af %1 på %2 %3 er ikke muligt\Fejlbeskrivelse:\%4",DEU="Verrechnung für %1 auf %2 %3 war nicht möglich\Fehlerbeschreibung:\%4",ESP="Aceptación de %1 en %2 %3 no fue posible\Error Descripción:\%4",FRA="Acceptation de %1 sur %2 %3 n"';
+        TEXT002: Label '%1 must be %2 or %3.', Comment = 'DAN="%1 skal være %2 eller %3.",DEU="%1 muss %2 oder %3 sein.",ESP="%1 debe ser %2 o %3.",FRA="%1 devrait être %2 ou %3.",SVE="%1 måste vara %2 eller %3."';
+        TEXT003: Label 'Transaction %1 order Number %2\', Comment = 'DAN="Transaktion %1 ordre nummer %2\",DEU="Transaktion %1 Bestellnummer %2\",ESP="Transacción %1 No. Pedido %2\",FRA="Transaction %1 N° commande %2\",SVE="Transaktion %1 ordernummer %2\"';
+        TEXT004: Label 'from provider %3 cannot be tested.\', Comment = 'DAN="fra Udbyder %3 kan ikke testes.\",DEU="Von Anbieter %3 wurde nicht getestet.\",ESP="de Proveedor %3 no se puede testear.\",FRA="du fournisseur de paiement en ligne %3 ne peut être testé.",SVE="från säljare %3 kan ej testas.\"';
+        TEXT005: Label 'This could be due to hacking on the Web Site.', Comment = 'DAN="Dette kan skyldes hacking på dit Web Site.",DEU="Das könnte von einem Hacker der Web-Seite verursacht werden.",ESP="Esto podría ser debido a hacking del Sitio Web. ",FRA="Ceci peut être du à un problème de sécurité sur le site Internet.",SVE="Detta kan tillåtas vid registrering via Websidan"';
+        TEXT006: Label 'Transaction %1 from provider %2 cannot be tested.\', Comment = 'DAN="Transaktion %1 fra udbyder %2 kan ikke testes.\",DEU="Transaktion %1 von Anbieter %2 Wurde nicht getestet.\",ESP="Transacción %1 de Proveedor %2 no se puede testear.\",FRA="Transaction %1 du fournisseur de paiement en ligne %2 ne peut être testée.\",SVE="Transaktion %1 från säljare %2 kan ej testas.\"';
+        TEXT007: Label 'Error Description %3', Comment = 'DAN="Fejlbeskrivelse %3",DEU="Fehlerbeschreibung %3",ESP="Error Descripción %3",FRA="Erreur %3",SVE="Felmeddelande %3"';
+        TEXT008: Label 'Transaction %1 from provider %2 cannot be tested.\', Comment = 'DAN="Transaktion %1 fra udbyder %2 kan ikke testes.\",DEU="Transaktion %1 von Anbieter %2 Wurde nicht getestet.\",ESP="Transacción %1 de proveedor %2 no se puede testear.\",FRA="Transaction %1 du fournisseur de paiement en ligne %2 ne peut être testée.\",SVE="Transaktion %1 från säljare %2 kan ej testas.\"';
+        TEXT009: Label 'The Cleared Amount is %3 it should be %4.', Comment = 'DAN="Cleared beløb er %3, det skulle være %4.",DEU="Der Nettobetrag ist %3 es sollte sein %4.",ESP="El Importe Aceptado es %3 debería ser %4.",FRA="Le montant accepté devrait être %4. Il est %3.",SVE="Godkänt belopp är %3 och borde vara %4."';
+        TEXT010: Label 'Transaction %1 from provider %2 cannot be renewed.\', Comment = 'DAN="Transaktion %1 fra udbyder %2 kan ikke fornys.\",DEU="Transaktion %1 von Anbieter %2 Wurde nicht getestet.\",ESP="Transacción %1 de Proveedor %2 no se puede renovar.\",FRA="Transaction %1 du fournisseur de paiement en ligne %2 ne peut être renouvellée.\",SVE="Transaktionen %1från säljare %2 kan inte uppdateras.\"';
+        TEXT011: Label 'Error Description %3', Comment = 'DAN="Fejlbeskrivelse %3",DEU="Fehlerbeschreibung %3",ESP="Error Descripción %3",FRA="Erreur %3",SVE="Felmeddelande %3"';
+        TEXT012: Label 'Transaction %1 from provider %2 cannot be cancelled.\', Comment = 'DAN="Transaktion %1 fra udbyder %2 kan ikke slettes.\",DEU="Transaktion %1 von Anbieter %2 wurde nicht storniert.\",ESP="Transacción %1 de Proveedor %2 no se puede cancelar.\",FRA="Transaction %1 du fournisseur de paiement en ligne %2 ne peut être annulée.\",SVE="Transaktion %1 från %2 kan ej avbrytas.\"';
+        TEXT013: Label 'Error Description %3', Comment = 'DAN="Fejlbeskrivelse %3",DEU="Fehlerbeschreibung %3",ESP="Error Descripción %3",FRA="Erreur %3",SVE="Felmeddelande %3"';
+        TEXT014: Label 'Transaction %1 from provider %2 cannot be captured.\', Comment = 'DAN="Transaktion %1 fra udbyder %2 kan ikke blive captured.\",DEU="Transaktion %1 von Anbieter %2 Wurde nicht eingegeben.\",ESP="Transacción %1 de Proveedor %2 no se puede capturar.\",FRA="Transaction %1 du fournisseur de paiement en ligne %2 ne peut être capturée.\",SVE="Transaktionen %1från säljaren%2 kan ej tas emot.\"';
+        TEXT015: Label 'Error Description %3', Comment = 'DAN="Fejlbeskrivelse %3",DEU="Fehlerbeschreibung %3",ESP="Error Descripción %3",FRA="Erreur %3",SVE="Felmeddelande %3"';
+        TEXT016: Label 'Card Type for Transaction %1 from provider %2 cannot be found.\', Comment = 'DAN="Korttype til Transaktion %1 fra udbyder %2 kan ikke hentes.\",DEU="Kartentyp für Transaktion %1 von Anbieter %2 wurde nicht gefunden.\",ESP="Tipo de Tarjeta para la Transacción %1 de Proveedor %2 no se puede encontrar.\",FRA="Type carte bancaire pour la transaction %1 du fournisseur de paiement en ligne %2 ne peut être trouvée.\",SVE="Korttyp för transaktion %1 från försäljare %2 saknas.\"';
+        TEXT017: Label 'Error Description %3', Comment = 'DAN="Fejlbeskrivelse %3",DEU="Fehlerbeschreibung %3",ESP="Error Descripción %3",FRA="Erreur %3",SVE="Felmeddelande %3"';
+        TEXT018: Label 'must be Cleared or Ready to Capture', Comment = 'DAN="skal være Clearet eller Klar til Capture.",DEU="muss eindeutig oder fertig zur Eingabe sein",ESP="debe ser aceptado o preparado para Capturar",FRA="devrait être accepté ou prêt à être capturé",SVE="måste rensas eller vara färdig för överföring"';
+
+    /// <summary>
+    /// ClearingSalesHeader.
+    /// </summary>
+    /// <param name="SalesHeader">VAR Record "Sales Header".</param>
+    /// <param name="CurrentDate">Date.</param>
+    procedure ClearingSalesHeader(var SalesHeader: Record "Sales Header"; CurrentDate: Date);
+    var
+        SalesLine: Record "Sales Line";
+    begin
+        // CLEAR(EPaymentOCX);
+
+        SalesHeader.TESTFIELD("e-payment Provider Code EXP", '');
+        SalesHeader.TESTFIELD("e-payment Clearing OK EXP", false);
+
+        SalesHeader.TESTFIELD("Payment Method Code");
+        PaymentMethod.GET(SalesHeader."Payment Method Code");
+        PaymentMethod.TESTFIELD("e-payment Provider Code EXP");
+
+        EPaymentProvider.GET(PaymentMethod."e-payment Provider Code EXP");
+        EPaymentProvider.TESTFIELD("Merchant ID EXP");
+        EPaymentProvider.TESTFIELD("Login User ID EXP");
+        EPaymentProvider.TESTFIELD("Provider Type EXP");
+        EPaymentProvider.TESTFIELD("Clearing Validity Period EXP");
+
+        InternetShopSetup.GET('');
+
+        SalesLine.RESET;
+        SalesLine.SETRANGE("Document Type", SalesHeader."Document Type");
+        SalesLine.SETRANGE("Document No.", SalesHeader."No.");
+        SalesLine.CALCSUMS("Outstanding Amount");
+        SalesLine."Outstanding Amount" :=
+          ROUND(SalesLine."Outstanding Amount", 1, '>');
+        if SalesLine."Outstanding Amount" <= 0 then
+            ERROR(TEXT000, FORMAT(SalesLine."Outstanding Amount"));
+
+        CLEAR(CardIDPage);
+        CardIDPage.LOOKUPMODE(true);
+        if not (CardIDPage.RUNMODAL = ACTION::LookupOK) then
+            exit;
+        CardIDPage.GetCardID(CardNumber, ExpiryMonth, ExpiryYear);
+        CardIDPage.VerifyCardInformation(CardNumber, ExpiryMonth, ExpiryYear, true);
+
+        // EPaymentOCX.Simulation := InternetShopSetup.Simulation;
+        // EPaymentOCX.Provider := FORMAT(EPaymentProvider."Provider Type");
+        // EPaymentOCX.MerchantID := EPaymentProvider."Merchant ID";
+        // EPaymentOCX.UserName := EPaymentProvider."Login User ID";
+        // EPaymentOCX.Password := EPaymentProvider.Password;
+
+        // EPaymentOCX.CardNo := CardNumber;
+        // EPaymentOCX.ExpiryMonth := ExpiryMonth;
+        // EPaymentOCX.ExpiryYear := ExpiryYear;
+        // EPaymentOCX.OrderNo := SalesHeader."No.";
+        // // >> EPAY1.1
+        // EPaymentOCX.CurrencyCode := SalesHeader."Currency Code";
+        // // << EPAY1.1
+        // EPaymentOCX.Amount := SalesLine."Outstanding Amount";
+
+        //     if EPaymentOCX.ClearTransaction(SalesLine."Outstanding Amount") then begin
+        //       NewEPaymentEntry.RESET;
+        //       if not NewEPaymentEntry.FIND('+') then
+        //         NewEPaymentEntry."Entry No." := 1
+        //       else
+        //         NewEPaymentEntry."Entry No." :=
+        //           NewEPaymentEntry."Entry No." + 1;
+        //       NewEPaymentEntry.INIT;
+        //       NewEPaymentEntry."Transaction ID" := EPaymentOCX.TransactionID;
+        //       NewEPaymentEntry."Cleared Order No." := EPaymentOCX.OrderNo;
+        //       NewEPaymentEntry."Document Type" := SalesHeader."Document Type";
+        //       NewEPaymentEntry."Document No." := EPaymentOCX.OrderNo;
+        //       NewEPaymentEntry."Cleared Amount" := EPaymentOCX.Amount;
+        //       NewEPaymentEntry."e-payment Provider Code EXP" :=
+        //         PaymentMethod."e-payment Provider Code EXP";
+        //       NewEPaymentEntry.Status := NewEPaymentEntry.Status::Cleared;
+        //       NewEPaymentEntry."Clearing Valid-to Date" :=
+        //         CALCDATE(EPaymentProvider."Clearing Validity Period",CurrentDate);
+        //       // EPAY1.1 >>
+        //       NewEPaymentEntry.Signature := EPaymentOCX.TransactionSignature;
+        //       NewEPaymentEntry.CurrencyCode := EPaymentOCX.CurrencyCode;
+        //       // << EPAY1.1
+        //         NewEPaymentEntry.INSERT;
+
+        //       SalesHeader."e-payment Provider Code EXP" := PaymentMethod."e-payment Provider Code EXP";
+        //       SalesHeader."e-payment Clearing OK" := true;
+        //       SalesHeader.MODIFY;
+        //     end else
+        //     // EPAY1.1 >>
+        //         ERROR(
+        //         TEXT001,
+        //         FORMAT(SalesLine."Outstanding Amount"),SalesHeader."Document Type",SalesHeader."No.",EPaymentOCX.ErrorDescription);
+        //     // << EPAY1.1
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// InsertClearedSalesHeader.
+    /// </summary>
+    /// <param name="SalesHeader">VAR Record "Sales Header".</param>
+    /// <param name="CurrentDate">Date.</param>
+    /// <param name="OrderNo">Code[20].</param>
+    /// <param name="TransactionID">Code[20].</param>
+    /// <param name="ClearedAmount">Decimal.</param>
+    /// <param name="TransactionSignature">Text[250].</param>
+    procedure InsertClearedSalesHeader(var SalesHeader: Record "Sales Header"; CurrentDate: Date; OrderNo: Code[20]; TransactionID: Code[20]; ClearedAmount: Decimal; TransactionSignature: Text[250]);
+    begin
+        SalesHeader.TESTFIELD("e-payment Provider Code EXP", '');
+        SalesHeader.TESTFIELD("e-payment Clearing OK EXP", false);
+        if not (SalesHeader."Document Type" in
+                [SalesHeader."Document Type"::Order,
+                SalesHeader."Document Type"::Invoice])
+        then
+            ERROR(
+              TEXT002,
+              SalesHeader.FIELDNAME("Document Type"),
+              FORMAT(SalesHeader."Document Type"::Order),
+              FORMAT(SalesHeader."Document Type"::Invoice));
+
+        SalesHeader.TESTFIELD("Payment Method Code");
+        PaymentMethod.GET(SalesHeader."Payment Method Code");
+        PaymentMethod.TESTFIELD("e-payment Provider Code EXP");
+        EPaymentProvider.GET(PaymentMethod."e-payment Provider Code EXP");
+
+        NewEPaymentEntry.RESET;
+        if not NewEPaymentEntry.FIND('+') then
+            NewEPaymentEntry."Entry No. EXP" := 1
+        else
+            NewEPaymentEntry."Entry No. EXP" :=
+              NewEPaymentEntry."Entry No. EXP" + 1;
+        NewEPaymentEntry.INIT;
+        NewEPaymentEntry."Transaction ID EXP" := TransactionID;
+        NewEPaymentEntry."Signature EXP" := TransactionSignature;
+        NewEPaymentEntry."Cleared Order No. EXP" := OrderNo;
+        NewEPaymentEntry."Document Type EXP" := SalesHeader."Document Type";
+        NewEPaymentEntry."Document No. EXP" := SalesHeader."No.";
+        NewEPaymentEntry."Cleared Amount EXP" := ClearedAmount;
+        NewEPaymentEntry."e-payment Provider Code EXP" :=
+          PaymentMethod."e-payment Provider Code EXP";
+        NewEPaymentEntry."Status EXP" := NewEPaymentEntry."Status EXP"::Cleared;
+        NewEPaymentEntry."Clearing Valid-to Date EXP" :=
+          CALCDATE(EPaymentProvider."Clearing Validity Period EXP", CurrentDate);
+        // EPAY1.1 >>
+        NewEPaymentEntry."CurrencyCode EXP" := SalesHeader."Currency Code";
+        // << EPAY1.1
+        NewEPaymentEntry.INSERT;
+
+        SalesHeader."e-payment Provider Code EXP" := PaymentMethod."e-payment Provider Code EXP";
+        SalesHeader."e-payment Clearing OK EXP" := true;
+        SalesHeader.MODIFY;
+    end;
+
+    /// <summary>
+    /// TestClearing.
+    /// </summary>
+    /// <param name="EPaymentEntry">Record "e-payment Entry".</param>
+    procedure TestClearing(EPaymentEntry: Record "e-payment Entry EXP");
+    var
+        ClearedAmount: Decimal;
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // TestCleardOrReadyToCapture(EPaymentEntry);
+
+        // InternetShopSetup.GET('');
+        // EPaymentProvider.GET(EPaymentEntry."e-payment Provider Code EXP");
+
+        // EPaymentOCX.Simulation := InternetShopSetup.Simulation;
+        // EPaymentOCX.Provider := FORMAT(EPaymentProvider."Provider Type");
+        // EPaymentOCX.MerchantID := EPaymentProvider."Merchant ID";
+        // EPaymentOCX.UserName := EPaymentProvider."Login User ID";
+        // EPaymentOCX.Password := EPaymentProvider.Password;
+        // // EPAY1.1 >>
+        // EPaymentOCX.TransactionSignature := EPaymentEntry.Signature;
+        // EPaymentOCX.SharedSecret := EPaymentProvider."Shared Secret";
+        // EPaymentOCX.Amount := EPaymentEntry."Cleared Amount";
+        // EPaymentOCX.CurrencyCode := EPaymentEntry.CurrencyCode;
+        // // << EPAY1.1
+
+        // ClearedAmount :=
+        //   EPaymentOCX.TestTransaction(
+        //     EPaymentEntry."Transaction ID",EPaymentEntry."Cleared Order No.");
+
+        // if ClearedAmount = 0 then
+        //   if EPaymentOCX.ErrorDescription = '' then
+        //     ERROR(
+        //       TEXT003 +
+        //       TEXT004 +
+        //       TEXT005,
+        //       EPaymentEntry."Transaction ID",
+        //       EPaymentEntry."Cleared Order No.",
+        //       EPaymentEntry."e-payment Provider Code EXP")
+        //   else
+        //     ERROR(
+        //       TEXT006 +
+        //       TEXT007,
+        //       EPaymentEntry."Transaction ID",
+        //       EPaymentEntry."e-payment Provider Code EXP",
+        //       EPaymentOCX.ErrorDescription);
+
+        // if ROUND(ClearedAmount,0.01) <> ROUND(EPaymentEntry."Cleared Amount",0.01) then
+        //   ERROR(
+        //     TEXT008 +
+        //     TEXT009,
+        //     EPaymentEntry."Transaction ID",
+        //     EPaymentEntry."e-payment Provider Code EXP",
+        //     FORMAT(ClearedAmount),FORMAT(EPaymentEntry."Cleared Amount"));
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// TestClearingSalesHeader.
+    /// </summary>
+    /// <param name="SalesHeader">Record "Sales Header".</param>
+    procedure TestClearingSalesHeader(SalesHeader: Record "Sales Header");
+    begin
+        SalesHeader.TESTFIELD("e-payment Provider Code EXP");
+        SalesHeader.TESTFIELD("e-payment Clearing OK EXP");
+
+        NewEPaymentEntry.RESET;
+        NewEPaymentEntry.SETCURRENTKEY("Document Type EXP", "Document No. EXP");
+        NewEPaymentEntry.SETRANGE("Document Type EXP", SalesHeader."Document Type");
+        NewEPaymentEntry.SETRANGE("Document No. EXP", SalesHeader."No.");
+        NewEPaymentEntry.SETRANGE(
+          "e-payment Provider Code EXP", SalesHeader."e-payment Provider Code EXP");
+        NewEPaymentEntry.FIND('+');
+
+        NewEPaymentEntry.TESTFIELD("Status EXP", NewEPaymentEntry."Status EXP"::Cleared);
+
+        TestClearing(NewEPaymentEntry);
+    end;
+
+    /// <summary>
+    /// RenewClearing.
+    /// </summary>
+    /// <param name="EPaymentEntry">Record "e-payment Entry EXP".</param>
+    /// <param name="CurrentDate">Date.</param>
+    procedure RenewClearing(EPaymentEntry: Record "e-payment Entry EXP"; CurrentDate: Date);
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // TestCleardOrReadyToCapture(EPaymentEntry);
+
+        // InternetShopSetup.GET('');
+        // EPaymentProvider.GET(EPaymentEntry."e-payment Provider Code EXP");
+        // EPaymentProvider.TESTFIELD("Clearing Validity Period");
+
+        // EPaymentOCX.Simulation := InternetShopSetup.Simulation;
+        // EPaymentOCX.Provider := FORMAT(EPaymentProvider."Provider Type");
+        // EPaymentOCX.MerchantID := EPaymentProvider."Merchant ID";
+        // EPaymentOCX.UserName := EPaymentProvider."Login User ID";
+        // EPaymentOCX.Password := EPaymentProvider.Password;
+
+        // EPaymentOCX.OrderNo := EPaymentEntry."Cleared Order No.";
+        // // >> EPAY1.1
+        // EPaymentOCX.CurrencyCode := EPaymentEntry.CurrencyCode;
+        // // << EPAY1.1
+        // // >> EIS2.01
+        // EPaymentOCX.Amount := EPaymentEntry."Cleared Amount";
+        // // << EIS2.01
+
+        // if not EPaymentOCX.RenewTransaction(EPaymentEntry."Transaction ID") then
+        //   ERROR(
+        //     TEXT010 +
+        //     TEXT011,
+        //     EPaymentEntry."Transaction ID",
+        //     EPaymentEntry."e-payment Provider Code EXP",
+        //     EPaymentOCX.ErrorDescription);
+
+        // EPaymentEntry."Clearing Valid-to Date" :=
+        //   CALCDATE(EPaymentProvider."Clearing Validity Period",CurrentDate);
+        // // >> EPAY1.1
+        // EPaymentEntry."Transaction ID" := EPaymentOCX.TransactionID;
+        // EPaymentEntry.Signature := EPaymentOCX.TransactionSignature;
+        // // << EPAY1.1
+        // EPaymentEntry.MODIFY;
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// RenewClearingSalesHeader.
+    /// </summary>
+    /// <param name="SalesHeader">Record "Sales Header".</param>
+    /// <param name="CurrentDate">Date.</param>
+    procedure RenewClearingSalesHeader(SalesHeader: Record "Sales Header"; CurrentDate: Date);
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // SalesHeader.TESTFIELD("e-payment Provider Code EXP");
+        // SalesHeader.TESTFIELD("e-payment Clearing OK");
+
+        // NewEPaymentEntry.RESET;
+        // NewEPaymentEntry.SETCURRENTKEY("Document Type","Document No.");
+        // NewEPaymentEntry.SETRANGE("Document Type",SalesHeader."Document Type");
+        // NewEPaymentEntry.SETRANGE("Document No.",SalesHeader."No.");
+        // NewEPaymentEntry.SETRANGE(
+        //   "e-payment Provider Code EXP",SalesHeader."e-payment Provider Code EXP");
+        // NewEPaymentEntry.FIND('+');
+
+        // NewEPaymentEntry.TESTFIELD(Status,NewEPaymentEntry.Status::Cleared);
+
+        // RenewClearing(NewEPaymentEntry,CurrentDate);
+
+        // NewEPaymentEntry.MODIFY;
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// PostSalesModifyLine.
+    /// </summary>
+    /// <param name="SalesHeader">Record "Sales Header".</param>
+    /// <param name="TotalSalesLine">Record "Sales Line".</param>
+    /// <returns>Return value of type Boolean.</returns>
+    procedure PostSalesModifyLine(SalesHeader: Record "Sales Header"; TotalSalesLine: Record "Sales Line"): Boolean;
+    begin
+        SalesHeader.TESTFIELD("e-payment Provider Code EXP");
+        SalesHeader.TESTFIELD("e-payment Clearing OK EXP");
+        SalesHeader.TESTFIELD("Applies-to ID", '');
+        SalesHeader.TESTFIELD("Bal. Account No.");
+
+        InternetShopSetup.GET('');
+
+        NewEPaymentEntry.RESET;
+        NewEPaymentEntry.SETCURRENTKEY("Document Type EXP", "Document No. EXP");
+        NewEPaymentEntry.SETRANGE("Document Type EXP", SalesHeader."Document Type");
+        NewEPaymentEntry.SETRANGE("Document No. EXP", SalesHeader."No.");
+        NewEPaymentEntry.SETRANGE(
+          "e-payment Provider Code EXP", SalesHeader."e-payment Provider Code EXP");
+        NewEPaymentEntry.FIND('+');
+
+        NewEPaymentEntry.TESTFIELD("Status EXP", NewEPaymentEntry."Status EXP"::Cleared);
+        NewEPaymentEntry."Invoice No. EXP" := TotalSalesLine."Document No.";
+        NewEPaymentEntry."Invoiced Amount EXP" := TotalSalesLine."Amount Including VAT";
+        NewEPaymentEntry."Invoice Posting Date EXP" := TotalSalesLine."Posting Date";
+        NewEPaymentEntry."Status EXP" := NewEPaymentEntry."Status EXP"::"Ready to Capture";
+        NewEPaymentEntry.MODIFY;
+
+        exit(InternetShopSetup."Batch Capture EXP");
+    end;
+
+    local procedure DeleteClearing(EpaymentEntry: Record "e-payment Entry EXP");
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // EpaymentEntry.TESTFIELD(Status,EpaymentEntry.Status::Cleared);
+
+        // InternetShopSetup.GET('');
+        // EPaymentProvider.GET(EpaymentEntry."e-payment Provider Code EXP");
+
+        // EPaymentOCX.Simulation := InternetShopSetup.Simulation;
+        // EPaymentOCX.Provider := FORMAT(EPaymentProvider."Provider Type");
+        // EPaymentOCX.MerchantID := EPaymentProvider."Merchant ID";
+        // EPaymentOCX.UserName := EPaymentProvider."Login User ID";
+        // EPaymentOCX.Password := EPaymentProvider.Password;
+
+        // if not EPaymentOCX.CancelTransaction(EpaymentEntry."Transaction ID") then
+        //   ERROR(
+        //     TEXT012 +
+        //     TEXT013,
+        //     EpaymentEntry."Transaction ID",
+        //     EpaymentEntry."e-payment Provider Code EXP",
+        //     EPaymentOCX.ErrorDescription);
+
+        // EpaymentEntry.Status := EpaymentEntry.Status::Dismissed;
+        // EpaymentEntry.MODIFY;
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// DeleteClearingSalesHeader.
+    /// </summary>
+    /// <param name="SalesHeader">VAR Record "Sales Header".</param>
+    procedure DeleteClearingSalesHeader(var SalesHeader: Record "Sales Header");
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // SalesHeader.TESTFIELD("e-payment Provider Code EXP");
+        // SalesHeader.TESTFIELD("e-payment Clearing OK");
+
+        // NewEPaymentEntry.RESET;
+        // NewEPaymentEntry.SETCURRENTKEY("Document Type","Document No.");
+        // NewEPaymentEntry.SETRANGE("Document Type",SalesHeader."Document Type");
+        // NewEPaymentEntry.SETRANGE("Document No.",SalesHeader."No.");
+        // NewEPaymentEntry.SETRANGE(
+        //   "e-payment Provider Code EXP",SalesHeader."e-payment Provider Code EXP");
+        // NewEPaymentEntry.FIND('+');
+
+        // DeleteClearing(NewEPaymentEntry);
+
+        // SalesHeader."e-payment Provider Code EXP" := '';
+        // SalesHeader."e-payment Clearing OK" := false;
+        // SalesHeader.MODIFY;
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// ManuallyDeleteClearing.
+    /// </summary>
+    /// <param name="EpaymentEntry">Record "e-payment Entry".</param>
+    procedure ManuallyDeleteClearing(EpaymentEntry: Record "e-payment Entry EXP");
+    var
+        SalesHeader: Record "Sales Header";
+        SalesInvoiceHeader: Record "Sales Invoice Header";
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // TestCleardOrReadyToCapture(EpaymentEntry);
+
+        // InternetShopSetup.GET('');
+        // EPaymentProvider.GET(EpaymentEntry."e-payment Provider Code EXP");
+
+        // if EpaymentEntry.Status = EpaymentEntry.Status::Cleared then begin
+        //   SalesHeader.GET(EpaymentEntry."Document Type",EpaymentEntry."Document No.");
+        //   SalesHeader.TESTFIELD("e-payment Provider Code EXP");
+        //   SalesHeader.TESTFIELD("e-payment Clearing OK",true);
+        //   SalesHeader."e-payment Provider Code EXP" := '';
+        //   SalesHeader."e-payment Clearing OK" := false;
+        //   SalesHeader.MODIFY;
+
+        //   EpaymentEntry.TESTFIELD("Invoice Posting Date",0D);
+        //   EpaymentEntry.TESTFIELD("Invoice No.",'');
+        //   EpaymentEntry.TESTFIELD("Invoiced Amount",0);
+        // end else begin
+        //   SalesInvoiceHeader.GET(EpaymentEntry."Invoice No.");
+        //   SalesInvoiceHeader.TESTFIELD("e-payment Provider Code EXP");
+        //   SalesInvoiceHeader.TESTFIELD("e-payment Clearing OK");
+        //   SalesInvoiceHeader."e-payment Provider Code EXP" := '';
+        //   SalesInvoiceHeader."e-payment Clearing OK" := false;
+        //   SalesInvoiceHeader.MODIFY;
+
+        //   EpaymentEntry.TESTFIELD("Invoice Posting Date");
+        //   EpaymentEntry.TESTFIELD("Invoice No.");
+        //   EpaymentEntry.TESTFIELD("Invoiced Amount");
+        // end;
+        // EpaymentEntry.TESTFIELD("Payment Posting Date",0D);
+        // EpaymentEntry.TESTFIELD("Captured Amount",0);
+
+        // EpaymentEntry.Status := EpaymentEntry.Status::"Manually Corrected";
+        // EpaymentEntry.MODIFY;
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// PostSalesCapture.
+    /// </summary>
+    /// <param name="SalesInvHeader">Record "Sales Invoice Header".</param>
+    /// <param name="PostingDate">Date.</param>
+    procedure PostSalesCapture(SalesInvHeader: Record "Sales Invoice Header"; PostingDate: Date);
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // NewEPaymentEntry.RESET;
+        // NewEPaymentEntry.SETCURRENTKEY("Invoice No.");
+        // NewEPaymentEntry.SETRANGE("Invoice No.",SalesInvHeader."No.");
+        // NewEPaymentEntry.SETRANGE(
+        //   "e-payment Provider Code EXP",SalesInvHeader."e-payment Provider Code EXP");
+        // NewEPaymentEntry.FIND('+');
+        // NewEPaymentEntry.TESTFIELD(Status,NewEPaymentEntry.Status::"Ready to Capture");
+
+        // InternetShopSetup.GET('');
+        // EPaymentProvider.GET(NewEPaymentEntry."e-payment Provider Code EXP");
+
+        // EPaymentOCX.Simulation := InternetShopSetup.Simulation;
+        // EPaymentOCX.Provider := FORMAT(EPaymentProvider."Provider Type");
+        // EPaymentOCX.MerchantID := EPaymentProvider."Merchant ID";
+        // EPaymentOCX.UserName := EPaymentProvider."Login User ID";
+        // EPaymentOCX.Password := EPaymentProvider.Password;
+        // // >> EPAY1.1
+        // EPaymentOCX.CurrencyCode := SalesInvHeader."Currency Code";
+        // // << EPAY1.1
+
+        // EPaymentOCX.OrderNo := NewEPaymentEntry."Cleared Order No.";
+
+        // if not EPaymentOCX.CaptureTransaction(
+        //          NewEPaymentEntry."Transaction ID",
+        //          NewEPaymentEntry."Invoiced Amount")
+        // then
+        //   ERROR(
+        //     TEXT014 +
+        //     TEXT015,
+        //     NewEPaymentEntry."Transaction ID",
+        //     NewEPaymentEntry."e-payment Provider Code EXP",
+        //     EPaymentOCX.ErrorDescription);
+
+        // NewEPaymentEntry."Captured Amount" := NewEPaymentEntry."Invoiced Amount";
+        // NewEPaymentEntry.Status := NewEPaymentEntry.Status::Captured;
+        // NewEPaymentEntry."Payment Posting Date" := PostingDate;
+        // // >> EPAY1.1
+        // NewEPaymentEntry."Transaction ID" := EPaymentOCX.TransactionID;
+        // // << EPAY1.1
+        // NewEPaymentEntry.MODIFY;
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// BatchCapture.
+    /// </summary>
+    /// <param name="EPaymentEntry">Record "e-payment Entry".</param>
+    /// <param name="PostingDate">Date.</param>
+    procedure BatchCapture(EPaymentEntry: Record "e-payment Entry EXP"; PostingDate: Date);
+    var
+        SalesInvHeader: Record "Sales Invoice Header";
+        CustLedgEntry: Record "Cust. Ledger Entry";
+        GenJnlLine: Record "Gen. Journal Line";
+        GenJnlPostLine: Codeunit "Gen. Jnl.-Post Line";
+    begin
+        EPaymentEntry.TESTFIELD("Invoice No. EXP");
+        EPaymentEntry.TESTFIELD("Status EXP", EPaymentEntry."Status EXP"::"Ready to Capture");
+
+        SalesInvHeader.GET(EPaymentEntry."Invoice No. EXP");
+
+        PostSalesCapture(SalesInvHeader, PostingDate);
+
+        CustLedgEntry.RESET;
+        CustLedgEntry.SETCURRENTKEY("Document Type", "Document No.", "Customer No.");
+        CustLedgEntry.SETRANGE("Document Type", CustLedgEntry."Document Type"::Invoice);
+        CustLedgEntry.SETRANGE("Document No.", SalesInvHeader."No.");
+        CustLedgEntry.SETRANGE("Customer No.", SalesInvHeader."Bill-to Customer No.");
+        CustLedgEntry.FIND('-');
+        CustLedgEntry.CALCFIELDS(Amount);
+
+        // Posting Payment
+        GenJnlLine.INIT;
+        GenJnlLine.VALIDATE("Posting Date", PostingDate);
+        GenJnlLine.VALIDATE("Document Type", GenJnlLine."Document Type"::Payment);
+        GenJnlLine.VALIDATE(
+            "External Document No.", SalesInvHeader."External Document No.");
+        GenJnlLine.VALIDATE("Document No.", SalesInvHeader."No.");
+        GenJnlLine.VALIDATE(Description, SalesInvHeader."Posting Description");
+        // #STARTREGION: REMOVE IN 2.60
+        GenJnlLine.VALIDATE("Shortcut Dimension 1 Code", SalesInvHeader."Shortcut Dimension 1 Code");
+        GenJnlLine.VALIDATE("Shortcut Dimension 2 Code", SalesInvHeader."Shortcut Dimension 2 Code");
+        // #ENDREGION: REMOVE IN 2.60
+        GenJnlLine.VALIDATE("Reason Code", SalesInvHeader."Reason Code");
+        GenJnlLine.VALIDATE("Account Type", GenJnlLine."Account Type"::Customer);
+        GenJnlLine.VALIDATE("Account No.", SalesInvHeader."Bill-to Customer No.");
+        GenJnlLine."External Document No." := SalesInvHeader."External Document No.";
+        if SalesInvHeader."Bal. Account Type" = SalesInvHeader."Bal. Account Type"::"Bank Account" then
+            GenJnlLine.VALIDATE(
+                "Bal. Account Type", GenJnlLine."Bal. Account Type"::"Bank Account");
+        GenJnlLine.VALIDATE("Bal. Account No.", SalesInvHeader."Bal. Account No.");
+        GenJnlLine.VALIDATE("Currency Code", SalesInvHeader."Currency Code");
+        // #STARTREGION: REMOVE IN 2.60
+        GenJnlLine.VALIDATE(Amount, -CustLedgEntry.Amount + CustLedgEntry."Original Pmt. Disc. Possible");
+        /*
+        // #ENDREGION: REMOVE IN 2.60
+        GenJnlLine.VALIDATE(Amount, -CustLedgEntry.Amount);
+        // #STARTREGION: REMOVE IN 2.60
+        */
+        // #ENDREGION: REMOVE IN 2.60
+        GenJnlLine.VALIDATE(Correction, SalesInvHeader.Correction);
+        GenJnlLine.VALIDATE(
+            "Applies-to Doc. Type", GenJnlLine."Applies-to Doc. Type"::Invoice);
+        GenJnlLine.VALIDATE("Applies-to Doc. No.", SalesInvHeader."No.");
+        GenJnlLine.VALIDATE("Source Type", GenJnlLine."Source Type"::Customer);
+        GenJnlLine.VALIDATE("Source No.", SalesInvHeader."Bill-to Customer No.");
+        GenJnlPostLine.RUN(GenJnlLine);
+    end;
+
+    /// <summary>
+    /// GetCardType.
+    /// </summary>
+    /// <param name="EPaymentEntry">Record "e-payment Entry".</param>
+    procedure GetCardType(EPaymentEntry: Record "e-payment Entry EXP");
+    begin
+        // CLEAR(EPaymentOCX);
+
+        // TestCleardOrReadyToCapture(EPaymentEntry);
+
+        // InternetShopSetup.GET('');
+        // EPaymentProvider.GET(EPaymentEntry."e-payment Provider Code EXP");
+
+        // EPaymentOCX.Simulation := InternetShopSetup.Simulation;
+        // EPaymentOCX.Provider := FORMAT(EPaymentProvider."Provider Type");
+        // EPaymentOCX.MerchantID := EPaymentProvider."Merchant ID";
+        // EPaymentOCX.UserName := EPaymentProvider."Login User ID";
+        // EPaymentOCX.Password := EPaymentProvider.Password;
+
+        // EPaymentEntry."Card Type" := EPaymentOCX.GetCardType(EPaymentEntry."Transaction ID");
+
+        // if EPaymentEntry."Card Type" = '' then
+        //   ERROR(
+        //     TEXT016 +
+        //     TEXT017,
+        //     EPaymentEntry."Transaction ID",
+        //     EPaymentEntry."e-payment Provider Code EXP",
+        //     EPaymentOCX.ErrorDescription);
+
+        // EPaymentEntry.MODIFY;
+        //TODO: FIX Epayment
+    end;
+
+    /// <summary>
+    /// GetCardTypeSalesHeader.
+    /// </summary>
+    /// <param name="SalesHeader">Record "Sales Header".</param>
+    procedure GetCardTypeSalesHeader(SalesHeader: Record "Sales Header");
+    begin
+        SalesHeader.TESTFIELD("e-payment Provider Code EXP");
+        SalesHeader.TESTFIELD("e-payment Clearing OK EXP");
+
+        NewEPaymentEntry.RESET;
+        NewEPaymentEntry.SETCURRENTKEY("Document Type EXP", "Document No. EXP");
+        NewEPaymentEntry.SETRANGE("Document Type EXP", SalesHeader."Document Type");
+        NewEPaymentEntry.SETRANGE("Document No. EXP", SalesHeader."No.");
+        NewEPaymentEntry.SETRANGE(
+          "e-payment Provider Code EXP", SalesHeader."e-payment Provider Code EXP");
+        NewEPaymentEntry.FIND('+');
+
+        NewEPaymentEntry.TESTFIELD("Status EXP", NewEPaymentEntry."Status EXP"::Cleared);
+
+        GetCardType(NewEPaymentEntry);
+    end;
+
+    /// <summary>
+    /// TestCleardOrReadyToCapture.
+    /// </summary>
+    /// <param name="EPaymentEntry">Record "e-payment Entry".</param>
+    procedure TestCleardOrReadyToCapture(EPaymentEntry: Record "e-payment Entry EXP");
+    begin
+        if (EPaymentEntry."Status EXP" <> EPaymentEntry."Status EXP"::Cleared) and
+           (EPaymentEntry."Status EXP" <> EPaymentEntry."Status EXP"::"Ready to Capture")
+        then
+            EPaymentEntry.FIELDERROR("Status EXP", TEXT018);
+    end;
+}
+

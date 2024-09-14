@@ -1,0 +1,134 @@
+table 78771 "ECRM Contact"
+{
+    // version EMCRM3.02
+
+    // EMCRM3.01 2012-05-14 PB * Features for Sales 4EMCR
+    // EMCRM3.02  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+
+    fields
+    {
+        field(1; ContactGuid; Code[20])
+        {
+            Caption = 'ContactGuid', Comment = 'ESP="ContactGuid"';
+        }
+        field(2; ContactName; Text[30])
+        {
+            Caption = 'ContactName', Comment = 'ESP="Nombre de Contacto"';
+        }
+        field(5; Address1; Text[30])
+        {
+            Caption = 'Address1', Comment = 'ESP="Dirección1"';
+        }
+        field(6; Address2; Text[30])
+        {
+            Caption = 'Address2', Comment = 'ESP="Dirección 2"';
+        }
+        field(7; CityName; Text[30])
+        {
+            Caption = 'CityName', Comment = 'ESP="Nombre Ciudad"';
+        }
+        field(9; PhoneNo; Text[30])
+        {
+            Caption = 'PhoneNo', Comment = 'ESP="No. Teléfono"';
+        }
+        field(29; UserGuid; Code[10])
+        {
+            Caption = 'Salesperson Code', Comment = 'DAN="Sælgerkode",DEU="Verkäufercode",ESP="Cód. vendedor",FRA="Code vendeur",SVE="Säljarkod"';
+            TableRelation = "Salesperson/Purchaser";
+            //This property is currently not supported
+            //TestTableRelation = false;
+            ValidateTableRelation = false;
+        }
+        field(35; CountryGuid; Code[10])
+        {
+            Caption = 'CountryGuid', Comment = 'ESP="CountryGuid"';
+        }
+        field(54; ModifiedDate; Date)
+        {
+            Caption = 'ModifiedDate', Comment = 'ESP="Fecha Modificación"';
+        }
+        field(84; FaxNo; Text[30])
+        {
+            Caption = 'FaxNo', Comment = 'ESP="No. Fax"';
+        }
+        field(91; ZipCode; Code[20])
+        {
+            Caption = 'ZipCode', Comment = 'ESP="Cód. Postal"';
+        }
+        field(92; CountyGuid; Text[30])
+        {
+            Caption = 'CountyGuid', Comment = 'ESP="CountyGuid"';
+        }
+        field(102; EmailAddress; Text[80])
+        {
+            Caption = 'EmailAddress', Comment = 'ESP="Email"';
+        }
+        field(103; "Home Page"; Text[80])
+        {
+            Caption = 'Home Page', Comment = 'DAN="Hjemmeside",DEU="Homepage",ESP="Página Web",FRA="Page d''accueil",SVE="Hemsida"';
+        }
+        field(5051; CompanyGuid; Code[20])
+        {
+            Caption = 'CompanyGuid', Comment = 'ESP="CompanyGuid"';
+        }
+        field(5054; FirstName; Text[30])
+        {
+            Caption = 'FirstName', Comment = 'ESP="Nombre"';
+        }
+        field(5055; MiddleName; Text[30])
+        {
+            Caption = 'MiddleName', Comment = 'ESP="Segundo Nombre"';
+        }
+        field(5056; LastName; Text[30])
+        {
+            Caption = 'LastName', Comment = 'ESP="Apellidos"';
+        }
+        field(5058; ContactTitle; Text[30])
+        {
+            Caption = 'ContactTitle', Comment = 'ESP="Título del Contacto"';
+        }
+        field(5061; MobilePhone; Text[30])
+        {
+            Caption = 'MobilePhone', Comment = 'ESP="No. Móvil"';
+        }
+        field(5101; "Salutation Code"; Code[10])
+        {
+            Caption = 'Salutation Code', Comment = 'DAN="Starthilsenkode",DEU="Anredecode",ESP="Cód. saludo",FRA="Code appellation",SVE="Hälsningskod"';
+            TableRelation = Salutation;
+        }
+        field(5104; ModifiedTime; Time)
+        {
+            Caption = 'ModifiedTime', Comment = 'ESP="Hora Modificación"';
+        }
+        field(770; "Convert Status"; Option)
+        {
+            Caption = 'Convert Status', Comment = 'DAN="Konverteringsstatus",DEU="Umwandlungsstatus",ESP="Estado de conversión",FRA="Nouveau statut",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected', Comment = 'DAN="Ny,Overført,Afvist",DEU="Neu,umgewandelt,abgelehnt",ESP="Nuevo,Convertido,Rechazado",FRA="Nouveau,Accepté,Rejeté",SVE="Ny,Godkänd,Avbruten"';
+            OptionMembers = New,Converted,Rejected;
+        }
+        field(771; BASGuid; Integer)
+        {
+            Caption = 'BASGuid', Comment = 'ESP="BASGuid"';
+        }
+        field(772; RecordAction; Text[15])
+        {
+            Caption = 'RecordAction', Comment = 'ESP="Grabar Acción"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; BASGuid)
+        {
+        }
+        key(Key2; ContactGuid, RecordAction)
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

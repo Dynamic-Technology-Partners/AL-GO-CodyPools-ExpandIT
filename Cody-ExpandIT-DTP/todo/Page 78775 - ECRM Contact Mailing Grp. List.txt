@@ -1,0 +1,73 @@
+page 78775 "ECRM Contact Mailing Grp. List"
+{
+    // version EMCRM2.15.01
+
+    // EMCRM2.15.01  2011-02-10  PB  * Moved SETFILTER to the OnOpen trigger to apply to changed behavior in RTC.
+    // EMCRM2.15.01  2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    InsertAllowed = false;
+    PageType = List;
+    SourceTable = "ECRM Contact Mailing Group";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1160840000)
+            {
+                field(BASGuid; BASGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(RecordAction; RecordAction)
+                {
+                    ApplicationArea = All;
+                }
+                field("Convert Status"; "Convert Status")
+                {
+                    ApplicationArea = All;
+                }
+                field("Contact No."; "Contact No.")
+                {
+                    ApplicationArea = All;
+                }
+                field("Mailing Group Code"; "Mailing Group Code")
+                {
+                    ApplicationArea = All;
+                }
+            }
+            field(bShowAll; bShowAll)
+            {
+                Caption = '&Show all', Comment = 'DAN="&Vis alle",DEU="&Alle anzeigen",ESP="&Muestra todos",FRA="Affic&her tout",SVE="&Visa alla"';
+                ApplicationArea = All;
+
+                trigger OnValidate();
+                begin
+                    bShowAllOnPush;
+                end;
+            }
+        }
+    }
+
+    actions
+    {
+    }
+
+    trigger OnOpenPage();
+    begin
+        SETFILTER("Convert Status", '<>1');
+    end;
+
+    var
+        bShowAll: Boolean;
+
+    local procedure bShowAllOnPush();
+    begin
+        if (bShowAll) then begin
+            SETFILTER("Convert Status", '');
+        end else begin
+            SETFILTER("Convert Status", '<>1');
+        end;
+    end;
+}
+

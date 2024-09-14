@@ -1,0 +1,96 @@
+report 78760 "Transfer EMT Registrations"
+{
+    // version EMT3.00.01
+
+    // EMT3.00     2011-05-13  PB  * Only Registrations with Quantity <> 0 is causing a journal line to be made.
+    // EMT3.00.01  2012-11-01  PB  * Moved to NAV 2013 (NAVW17.00)
+
+    Caption = 'Transfer EMT Registrations', Comment = 'DAN="Overfør EMT linjer",DEU="Übertrage EMT Registrationen",ESP="Registros de transferencias EMT",FRA="Transférer durées enregistrées EMT",SVE="Överför EMT registreringar"';
+    ProcessingOnly = true;
+
+    dataset
+    {
+        dataitem("EMT Registration"; "EMT Registration")
+        {
+            DataItemTableView = SORTING("User Guid", "Sort Index") WHERE("Transfer Status" = CONST(New));
+            RequestFilterFields = "Project Guid", "User Guid", "Customer Guid";
+
+            trigger OnAfterGetRecord();
+            begin
+                if TestRegistration then begin
+                    "EMT Registration"."Journal Template Name" := "Job Template Name";
+                    "EMT Registration"."Journal Batch Name" := "Job Batch Name";
+                    "EMT Registration".MODIFY;
+                    COMMIT;
+                    if CODEUNIT.RUN(CODEUNIT::"Transfer EMT Registration", "EMT Registration") then begin
+                        if Quantity <> 0 then Counter := Counter + 1;
+                        "EMT Registration"."Transfer Status" := "EMT Registration"."Transfer Status"::Transferred;
+                    end else begin
+                        ErrorCounter := ErrorCounter + 1;
+                        "EMT Registration"."Transfer Status" := "EMT Registration"."Transfer Status"::Error;
+                    end;
+                end else begin
+                    ErrorCounter := ErrorCounter + 1;
+                    "EMT Registration"."Transfer Status" := "EMT Registration"."Transfer Status"::Error;
+                    // Optional error handling
+                end;
+
+                "EMT Registration".MODIFY;
+            end;
+        }
+    }
+
+    requestpage
+    {
+
+        layout
+        {
+        }
+
+        actions
+        {
+        }
+    }
+
+    labels
+    {
+    }
+
+    trigger OnPostReport();
+    var
+        StatusMessage: Text[250];
+    begin
+        StatusMessage := STRSUBSTNO(Text000, Counter);
+
+        if ErrorCounter > 0 then
+            StatusMessage := StatusMessage +
+                     STRSUBSTNO(Text001 +
+                     Text002 +
+                     Text003, ErrorCounter);
+
+        MESSAGE(StatusMessage);
+    end;
+
+    trigger OnPreReport();
+    begin
+        Counter := 0;
+    end;
+
+    var
+        Text000: Label '%1 new Job Journal lines were created.', Comment = 'DAN="%1 nye Sagskladdelinier blev oprettet.",DEU="%1 neue Aufgabejournalzeilen wurden erzeugt.",ESP="%1 nuevas líneas del diario de trabajo fueron creadas.",FRA="Nombre de lignes feuille projet crées : %1.",SVE="\%1 fel upptäcktes\"';
+        Text001: Label '\%1 errors was encountered.\', Comment = 'DAN="\%1 fejl opstod.\",DEU="\%1 Fehler wurde unerwartet entdeckt.\",ESP="\Se encontraron %1 errores.\",FRA="\%1 erreurs enregistrées.\",SVE="För att korrigera dessa fel; var god manuellt\"';
+        Text002: Label 'To solve these issues; please manually\', Comment = 'DAN="For at løse disse fejl skal du manuelt\",DEU="Um das Problem zu lösen; bitte händisch\",ESP="Para solucionar esos problemas; por favor, manualmente\",FRA="Pour résoudre ses problèmes;\",SVE="överför registreringarna från Registreringslistan."';
+        Text003: Label 'transfer the registrations from the Registration list', Comment = 'DAN="overfør registreringslinierne fra registreringslisten",DEU="Übertrage die Registration von der Registrationsliste",ESP="Transferir los registros desde la lista de Registros",FRA="Transférer manuellement les durées enregistrées de la liste",SVE="%1 nya projektjournalrader blev skapade."';
+        JobJournalTemplate: Record "Job Journal Template";
+        JobJournalBatch: Record "Job Journal Batch";
+        "Job Batch Name": Code[10];
+        "Job Template Name": Code[10];
+        Counter: Integer;
+        ErrorCounter: Integer;
+
+    local procedure TestRegistration(): Boolean;
+    begin
+        exit(true);
+    end;
+}
+

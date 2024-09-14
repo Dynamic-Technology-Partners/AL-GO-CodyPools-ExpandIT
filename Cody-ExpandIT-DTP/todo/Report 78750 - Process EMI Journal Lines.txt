@@ -1,0 +1,1030 @@
+report 78750 "Process EMI Journal Lines"
+{
+    // version EMI2.15.02
+
+    // EMI2.15.01 2011-01-05 PB *  Major changes made in order to adhere to the new ExpandIT Mobile Client for EMI.
+    // EMI2.15.02            PB *  Receive feature added.
+    //           2012-11-01  PB * Moved to NAV 2013 (NAVW17.00)
+    DefaultLayout = RDLC;
+    RDLCLayout = './Process EMI Journal Lines.rdlc';
+
+
+    dataset
+    {
+        dataitem("EMI Journal Line"; "EMI Journal Line")
+        {
+            DataItemTableView = SORTING("Conversion Status", "Create Date", "Transaction Type", "Transaction Sub Type", "Reference No.", "Line no.") WHERE("Conversion Status" = CONST(New));
+            RequestFilterFields = "Transaction Type", "Transaction Sub Type", "BAS Client Guid", "Owner Location Guid", "Create Date";
+            column(FORMAT_TODAY_0_4_; FORMAT(TODAY, 0, 4))
+            {
+            }
+            column(COMPANYNAME; COMPANYNAME)
+            {
+                // }
+                // column(CurrReport_PAGENO;CurrReport.PAGENO)
+                // {
+                //TODO: FIX PageNo.
+            }
+            column(USERID; USERID)
+            {
+            }
+            column(EMI_Journal_Line__Transaction_Guid_; "Transaction Guid")
+            {
+            }
+            column(EMI_Journal_Line__Transaction_Type_; "Transaction Type")
+            {
+            }
+            column(EMI_Journal_Line__Product_Guid_; "Product Guid")
+            {
+            }
+            column(EMI_Journal_Line_Quantity; Quantity)
+            {
+            }
+            column(ConversionStatus; "Conversion Status")
+            {
+            }
+            column(EMI_Journal_Line__Transaction_Sub_Type_; "Transaction Sub Type")
+            {
+            }
+            column(EMI_Journal_Line__Conversion_Text_; "Conversion Text")
+            {
+            }
+            column(EMI_Journal_Line__Create_Date_; "Create Date")
+            {
+            }
+            column(EMI_Journal_LineCaption; EMI_Journal_LineCaptionLbl)
+            {
+            }
+            column(CurrReport_PAGENOCaption; CurrReport_PAGENOCaptionLbl)
+            {
+            }
+            column(EMI_Journal_Line__Transaction_Guid_Caption; FIELDCAPTION("Transaction Guid"))
+            {
+            }
+            column(EMI_Journal_Line__Transaction_Type_Caption; FIELDCAPTION("Transaction Type"))
+            {
+            }
+            column(EMI_Journal_Line__Product_Guid_Caption; FIELDCAPTION("Product Guid"))
+            {
+            }
+            column(EMI_Journal_Line_QuantityCaption; FIELDCAPTION(Quantity))
+            {
+            }
+            column(ConversionStatusCaption; FIELDCAPTION("Conversion Status"))
+            {
+            }
+            column(EMI_Journal_Line__Transaction_Sub_Type_Caption; FIELDCAPTION("Transaction Sub Type"))
+            {
+            }
+            column(EMI_Journal_Line__Conversion_Text_Caption; FIELDCAPTION("Conversion Text"))
+            {
+            }
+            column(EMI_Journal_Line__Create_Date_Caption; FIELDCAPTION("Create Date"))
+            {
+            }
+
+            trigger OnAfterGetRecord();
+            begin
+                if EMIJnlLineTransactionTypeIs("EMI Journal Line", 'COUNT', 'COUNT') then
+                    HandleCountCount
+                else
+                    if EMIJnlLineTransactionTypeIs("EMI Journal Line", 'COUNT', 'COUNT_ORDER') then
+                        HandleCountOrder
+                    else
+                        if EMIJnlLineTransactionTypeIs("EMI Journal Line", 'DEPARTURE', 'SALES_ORDER') then
+                            HandleSalesOrder
+                        else
+                            if EMIJnlLineTransactionTypeIs("EMI Journal Line", 'ARRIVAL', 'PURCHASE_ORDER') then
+                                HandlePurchOrder
+                            else
+                                if EMIJnlLineTransactionTypeIs("EMI Journal Line", 'TRANSFER', 'TRANSFER') then
+                                    HandleTransferTransfer
+                                else
+                                    if EMIJnlLineTransactionTypeIs("EMI Journal Line", 'TRANSFER', 'TRANSFER_ORDER') then
+                                        HandleTransferOrder
+                                    else
+                                        FinalizeSingleEMIJnlLine(
+                                          "EMI Journal Line", "Conversion Status"::Error,
+                                          STRSUBSTNO(TEXT0017, "Transaction Type", "Transaction Sub Type"));
+
+                COMMIT;
+            end;
+
+            trigger OnPreDataItem();
+            var
+                EMIJnlLine: Record "EMI Journal Line";
+            begin
+                EMIJnlLine.COPY("EMI Journal Line");
+                EMIJnlLine.FILTERGROUP(2);
+                EMIJnlLine.SETRANGE("Conversion Status", "Conversion Status"::Error);
+                EMIJnlLine.MODIFYALL("Conversion Status", "Conversion Status"::New);
+                EMIJnlLine.FILTERGROUP(0);
+                COMMIT;
+            end;
+        }
+        dataitem("Integer"; "Integer")
+        {
+            DataItemTableView = SORTING(Number) WHERE(Number = CONST(1));
+            column(MessageText; MessageText)
+            {
+            }
+            column(Integer_Number; Number)
+            {
+            }
+
+            trigger OnAfterGetRecord();
+            var
+                NoOfErrors: Integer;
+            begin
+                with "EMI Journal Line" do begin
+                    FILTERGROUP(2);
+                    SETRANGE("Conversion Status", "Conversion Status"::Error);
+                    NoOfErrors := COUNT;
+                    FILTERGROUP(0);
+                end;
+                if NoOfErrors <> 0 then
+                    MessageText := STRSUBSTNO(TEXT0003, NoOfErrors)
+                else
+                    MessageText := '';
+            end;
+        }
+    }
+
+    requestpage
+    {
+
+        layout
+        {
+        }
+
+        actions
+        {
+        }
+    }
+
+    labels
+    {
+    }
+
+    trigger OnPreReport();
+    begin
+        EMISetup.MODIFY();
+        COMMIT;
+
+        EMIJournalCount := "EMI Journal Line".COUNT;
+    end;
+
+    var
+        Location: Record Location;
+        ItemJournalTemplate: Record "Item Journal Template";
+        ItemJournalBatch: Record "Item Journal Batch";
+        ItemJournalLine: Record "Item Journal Line";
+        ItemJournalLine2: Record "Item Journal Line";
+        Item: Record Item;
+        TransferHeader: Record "Transfer Header";
+        TransferLine: Record "Transfer Line";
+        tmpTransferHeader: Record "Transfer Header" temporary;
+        tmpTransferLine: Record "Transfer Line" temporary;
+        SalesHeader: Record "Sales Header";
+        SalesLine: Record "Sales Line";
+        tmpSalesHeader: Record "Sales Header" temporary;
+        tmpSalesLine: Record "Sales Line" temporary;
+        EMISetup: Record "EMI Setup";
+        TEXT0001: Label 'Please select a template name first', Comment = 'DAN="Vælg et typenavn først",DEU="Bitte erst einen Vorlagennamen auswählen.",ESP="Por favor, selecciona un nombre de plantilla primero",FRA="Veuillez-choisir un modèle d"';
+        ItemJnlManagementx: Codeunit ItemJnlManagement;
+        ItemJnlPostBatch: Codeunit "Item Jnl.-Post Batch";
+        ItemJnlPostLine: Codeunit "Item Jnl.-Post Line";
+        TransferPostShip: Codeunit "TransferOrder-Post Shipment";
+        TransferPostReceipt: Codeunit "TransferOrder-Post Receipt";
+        SalesPost: Codeunit "Sales-Post";
+        CalcQtyOnHand: Report "Calculate Inventory";
+        OrderNextLineNo: Integer;
+        EMIJournalCount: Integer;
+        ErrorCount: Integer;
+        ItemJournalCount: Integer;
+        TransferOrderCount: Integer;
+        PhysJournalCount: Integer;
+        ReclassJournalCount: Integer;
+        ConversionText: Text[250];
+        PostText: Text[250];
+        MessageText: Text[250];
+        LastJournalType: Option " ",Item,"Reclass.","Phys.";
+        ConversionError: Boolean;
+        TEXT0002: Label 'No lines processed', Comment = 'DAN="Ingen linjer behandlet",DEU="Keine Zeile verarbeitet",ESP="No de líneas procesadas",FRA="Aucune ligne traitée",SVE="Inga rader är behandlade"';
+        TEXT0003: Label '%1 EMI Journal lines processed\%2 errors happened.', Comment = 'DAN="%1 EMI Kladdelinier bahandlet\%2 fejl.",DEU="%1 Fehler aufgetreten. ",ESP="%1 errores ocurridos.",FRA="Erreurs trouvées : %1.",SVE="%1 fel inträffade."';
+        TEXT0004: Label 'EMI Transfer from %1 to %2 via %3', Comment = 'DAN="EMI Overførsel fra %1 til %2 via %3",DEU="EMI Übertragung von %1 nach %2 via %3",ESP="EMI Transferir desde %1 a %2 via %3",FRA="EMI Transfert de %1 à %2 via %3",SVE="EMI överföring från %1 till %2 via %3"';
+        TEXT0005: Label 'EMI Transfer from %1 to %2', Comment = 'DAN="EMI Overførsel fra %1 til %2",DEU="EMI Übertragung von %1 nach %2",ESP="EMI Transferir desde %1 a %2",FRA="EMI Transfert de %1 à %2",SVE="EMI Överföring från %1 till %2"';
+        TEXT0006: Label 'EMI Count (%1) %2', Comment = 'DAN="EMI Optælling (%1) %2",DEU="EMI Zähler (%1) %2",ESP="EMI Cuenta (%1) %2",FRA="EMI Compteur (%1) %2",SVE="EMI Räknar (%1) %2"';
+        TEXT0007: Label 'EMI Adjustment', Comment = 'DAN="EMI Justering",DEU="EMI Anpassung",ESP="EMI Ajuste",FRA="Ajustement EMI",SVE="EMI Justering"';
+        TEXT0008: Label 'Transfer Order %1. Too few of item %2 on order. Expected %3.', Comment = 'DAN="Overflytningsordre %1. For få af varenr. %2 på ordren. Forventede %3.",DEU="Übertragung Auftrag %1. Zu wenig Artikel %2 im Auftrag. Erwartet %3.",ESP="Transferir Pedido %1. Cantidad baja del producto %2 en el pedido. Se espera %3.",FRA="Commande de transfert %1. Pas assez d"';
+        TEXT0009: Label 'Transfer Order %1 not found.', Comment = 'DAN="Overflytningsordre %1 blev ikke fundet.",DEU="Übertragung Auftrag %1 nicht gefunden.",ESP="No se encuentra el pedido de transferencia %1.",FRA="Commande de transfert %1 n"';
+        TEXT0010: Label 'Sales Order %1 not found.', Comment = 'DAN="Salgsordre %1 blev ikke fundet.",DEU="Verkaufsauftrag %1 nicht gefunden.",ESP="No se encuentra el Pedido de ventas %1.",FRA="Commande vente %1 n"';
+        TEXT0011: Label 'Customer mismatch on sales order %1. Expected %2.', Comment = 'DAN="Kundefejl på salgsordre %1. Forventede %2.",DEU="Kunde passt nicht zum Verkaufsauftrag %1. Erwartet wurde %2.",ESP="No coincide el cliente en el pedido de ventas %1. Se esperaba %2.",FRA="Client inattendu sur la commande vente %1. %2 attendu.",SVE="Kund stämmer ej på försäljningsorder %1. Förväntat %2."';
+        TEXT0012: Label 'Please see the "Transfer Text" field for a description of the error(s).', Comment = 'DAN="Se "Overførselstekst" feltet for en beskrivelse af fejlen eller fejlene.",DEU="Bitte sehen Sie "Transfertext"-Feld für eine Beschreibung des Fehlers.",ESP="Por favor, lea el campo de "texto de transferencia" para una descripción del error(es).",FRA="Consulter la description des erreurs.",SVE="Titta på "Överföringstext" fältet för en beskrivning av felet(n)."';
+        TEXT0013: Label 'Item Journal line %1', Comment = 'DAN="Varekladde linie %1",DEU="Artikeljournalzeile %1",ESP="Línea de diario del producto %1",FRA="Ligne feuille article %1",SVE="Artikeljournalrad %1"';
+        TEXT0014: Label 'Updated Transfer Order %1', Comment = 'DAN="Opdaterede Overflytningsordre %1",DEU="Aktualisierter Transportauftrag %1",ESP="Actualizar el pedido de transferencia %1",FRA="Commande de transfert %1 mis à jour",SVE="Uppdaterad överföringsorder %1"';
+        TEXT0015: Label 'Updated %1', Comment = 'DAN="Opdaterede %1",DEU="Aktualisierter %1",ESP="Actualizado %1",FRA="Mis à jour %1",SVE="Uppdaterad %1"';
+        TEXT0016: Label '%1 type not implemented', Comment = 'DAN="%1 typen er ikke understøttet i kørselen.",DEU="%1 Typ nicht ausführbar",ESP="%1 tipo no implementado",FRA="Type %1 non reconnu",SVE="%1 Typ ej implementerad"';
+        TEXT0017: Label 'Unknown type %1', Comment = 'DAN="Ukendt type %1",DEU="Unbekannter Typ %1",ESP="Tipo %1 desconocido",FRA="Type %1 non reconnu",SVE="Okänd typ %1"';
+        TEXT0018: Label 'Created Transfer Order %1', Comment = 'DAN="Oprettede Overflytningsordrenr. %1",DEU="Transferauftrag %1 erzeugt",ESP="Se creo el pedido de transferencia %1",FRA="Commande de transfert %1 crée",SVE="Skapade överföringsorder %1"';
+        TEXT0019: Label 'Phys. Inventory Journal line %1', Comment = 'DAN="Lageropgørelseskladde-linienr. %1",DEU="Phys. Inventurjournalzeile %1",ESP="Línea %1 del diario del Inventario físico",FRA="Ligne feuille inventaire %1",SVE="Fysisk lager journal rad %1"';
+        TEXT0020: Label 'Item Reclass. Journal line %1', Comment = 'DAN="Vareomposteringskladde linienr. %1",DEU="Artikel Umlagerungs Buch.-Blatt Journalzeile %1",ESP="Línea %1 del diario de reclas. del producto",FRA="Ligne feuille reclassement article %1",SVE="Artikelomklassificering Journalrad %1"';
+        TEXT0021: Label 'Posting of Journal type %1 failed.', Comment = 'DAN="Bogføring af kladdetype %1 fejlede.",DEU="Ausführung des Journaltyps %1 fehlerhaft.",ESP="El envío del diario tipo %1 falló.",FRA="Validation échouée. Type feuille %1.",SVE="Bokföring av Journaltyp %1 misslyckades."';
+        TEXT0023: Label 'Quantity entered in Expandit Warehouse Mobile is higher than the outstanding quantity in Line No. %1.', Comment = 'DAN="Et antal indtastet i Expandit Warehouse Mobile er højere end det uestående antal i linie nummer %1.",ESP="La cantidad introducida en Expandit Warehouse Mobile es mayor que la cantidad pendiente en la Línea Número %1.",FRA="Quantité entré dans ExpandIT Mobile Warehouse est supérieure à la quantité en suspens à la ligne no. %1."';
+        TEXT0024: Label '|', Comment = 'DAN="|",ESP="|",FRA="|"';
+        TEXT0025: Label 'Posting Failed: %1', Comment = 'DAN="Bogføringen fejlede: %1",ESP="Error de contabilización: %1",FRA="Inscription manqué: %1"';
+        TEXT0026: Label 'Sales Order %1 has been modified with new quantities on lines but an error in posting occured: %2', Comment = 'DAN="Salgsordren %1 er blevet ændret med nye antalsangivelser på linierne, men en bogføringsfejl opstod: %2",ESP="El pedido de venta %1 ha sido modificado con nuevas cantidades en las líneas pero ha habido un error al registrar: %2",FRA="Commande %1 a été modifié avec de nouvelles quantités sur les lignes mais une erreur dans l"';
+        TEXT0027: Label 'Line No. %1 not found.', Comment = 'DAN="Linie nummer %1 blev ikke fundet.",ESP="Línea número %1 no encontrada.",FRA="Ligne no. %1 - pas trouvé"';
+        TEXT0028: Label 'Transfer Order %1 has been modified with new quantities on lines but an error in posting occured: %2', Comment = 'DAN="Overføringsordren %1 er blevet ændret med nye antalsangivelser på linierne, men der skete en bogføringsfejl: %2",ESP="El pedido de transferencia %1 ha sido modificado con nuevas cantidades en las líneas pero ha habido un error al registrar: %2",FRA="Commande de transfert %1 a été modifiée avec de nouvelles quantités sur les lignes mais une erreur s"';
+        TEXT0029: Label '%1 is processed: %2', Comment = 'DAN="%1 er behandlet: %2",ESP="%1 se ha procesado: %2",FRA="%1 est traité: %2"';
+        TEXT0030: Label '=CONST', Comment = 'DAN="=CONST",ESP="=CONST",FRA="=CONT"';
+        TEXT0031: Label 'Purchase Order %1 has been modified with new quantities on lines but an error in posting occured: %2', Comment = 'DAN="Købsordren %1 er blevet ændret med nye antalsangivelser på linierne, men en bogføringsfejl opstod: %2",ESP="El pedido de compra %1 ha sido modificado con nuevas cantidades en las líneas pero ha habido un error al registrar: %2",FRA="Bon de commande %1 a été modifié avec de nouvelles quantités sur les lignes mais une erreur dans l"';
+        EMI_Journal_LineCaptionLbl: Label 'EMI Journal Line', Comment = 'DAN="EMI Kladdelinie",DEU="EMI Journalzeilen",ESP="Linea de diario en EMI",FRA="Ligne feuille EMI",SVE="EMI Journal"';
+        CurrReport_PAGENOCaptionLbl: Label 'Page', Comment = 'DAN="Side",DEU="Seite",ESP="Página",FRA="Page",SVE="Sida"';
+        TEXT0022: Label 'Record not found: %1.', Comment = 'ESP="No se ha encontrado ningún registro: %1."';
+
+    procedure EMIJnlLineTransactionTypeIs(EMIJnlLine: Record "EMI Journal Line"; TransactionType: Text[40]; TransactionSubType: Text[40]): Boolean;
+    begin
+        exit((EMIJnlLine."Transaction Type" = TransactionType) and (EMIJnlLine."Transaction Sub Type" = TransactionSubType));
+    end;
+
+    procedure HandleCountCount();
+    begin
+        // Count will post a new Physical Inventory Journal line.
+        // The lines are created on the specified Template and Batch selected in the options.
+
+        ItemJournalTemplate.GET(EMISetup."Phys. Invent. Journal Template");
+        ItemJournalBatch.GET(ItemJournalTemplate.Name, EMISetup."Phys. Invent. Journal Batch");
+
+        ItemJournalLine2.RESET;
+        ItemJournalLine2.SETRANGE("Journal Template Name", ItemJournalTemplate.Name);
+        ItemJournalLine2.SETRANGE("Journal Batch Name", ItemJournalBatch.Name);
+        if not ItemJournalLine2.FIND('+') then
+            ItemJournalLine2.INIT();
+
+        ItemJournalLine.INIT();
+        ItemJournalLine."Line No." := ItemJournalLine2."Line No." + 10000;
+        ItemJournalLine.VALIDATE("Journal Template Name", ItemJournalTemplate.Name);
+        ItemJournalLine.VALIDATE("Journal Batch Name", ItemJournalBatch.Name);
+
+        ItemJournalLine.SetUpNewLine(ItemJournalLine2);
+
+        ItemJournalLine.VALIDATE("Posting Date", DT2DATE("EMI Journal Line"."Create Date"));
+        ItemJournalLine.VALIDATE("Document Date", DT2DATE("EMI Journal Line"."Create Date"));
+
+        ItemJournalLine.VALIDATE("Item No.", "EMI Journal Line"."Product Guid");
+        ItemJournalLine.VALIDATE("Location Code", "EMI Journal Line"."From Location Guid");
+
+        ItemJournalLine.VALIDATE("Phys. Inventory", true);
+
+        // Get the current Inventory for the Item.
+        Item.GET("EMI Journal Line"."Product Guid");
+        Item.SETRANGE("Location Filter", "EMI Journal Line"."From Location Guid");
+
+        Item.CALCFIELDS(Inventory);
+
+        ItemJournalLine.VALIDATE("Qty. (Calculated)", Item.Inventory);
+        ItemJournalLine.VALIDATE("Qty. (Phys. Inventory)", "EMI Journal Line".Quantity);
+
+        ItemJournalLine.VALIDATE(
+          Description,
+          FORMAT(
+            STRSUBSTNO(
+              TEXT0006,
+              ItemJournalLine."Qty. (Calculated)",
+              ItemJournalLine."Qty. (Phys. Inventory)",
+              "EMI Journal Line".Description),
+          -50));
+
+
+        if EMISetup."Post Phys. Invent. Journal" then begin
+            CLEAR(ItemJnlPostLine);
+
+            if not ItemJnlPostLine.RUN(ItemJournalLine) then begin
+                FinalizeSingleEMIJnlLine(
+                  "EMI Journal Line", "EMI Journal Line"."Conversion Status"::Error, STRSUBSTNO(TEXT0025, GETLASTERRORTEXT));
+                exit;
+            end;
+        end else
+            ItemJournalLine.INSERT(true);
+
+        FinalizeSingleEMIJnlLine(
+          "EMI Journal Line", "EMI Journal Line"."Conversion Status"::Converted,
+          STRSUBSTNO(TEXT0029, ItemJournalLine.TABLECAPTION, EndUserFreindlyPosition(ItemJournalLine.GETPOSITION)));
+    end;
+
+    procedure HandleCountOrder(): Boolean;
+    var
+        ItemJnlLine: Record "Item Journal Line";
+    begin
+        if ItemJnlLine.GET(
+          ReferenceNoToJnlTemplateName("EMI Journal Line"."Reference No."),
+          ReferenceNoToJnlBatchName("EMI Journal Line"."Reference No."), "EMI Journal Line"."Line no.")
+        then begin
+            ItemJnlLine.VALIDATE("Qty. (Phys. Inventory)", "EMI Journal Line".Quantity);
+            ItemJnlLine.MODIFY;
+        end else begin
+            FinalizeSingleEMIJnlLine(
+              "EMI Journal Line", "EMI Journal Line"."Conversion Status"::Error, STRSUBSTNO(TEXT0022, ItemJnlLine.TABLECAPTION));
+            exit;
+        end;
+
+        FinalizeSingleEMIJnlLine(
+          "EMI Journal Line", "EMI Journal Line"."Conversion Status"::Converted,
+          STRSUBSTNO(TEXT0029, ItemJnlLine.TABLECAPTION, EndUserFreindlyPosition(ItemJnlLine.GETPOSITION)));
+    end;
+
+    procedure HandleSalesOrder(): Boolean;
+    var
+        EMIJnlLine: Record "EMI Journal Line";
+        SalesHeader: Record "Sales Header";
+        SalesLine: Record "Sales Line";
+        tmpSalesLine: Record "Sales Line" temporary;
+        SalesPostPrint: Codeunit "Sales-Post + Print";
+    begin
+        CLEAR(tmpSalesLine);
+
+        EMIJnlLine.COPY("EMI Journal Line");
+        EMIJnlLine.SETRANGE("Reference No.", "EMI Journal Line"."Reference No.");
+        EMIJnlLine.SETRANGE("Transaction Group By", "EMI Journal Line"."Transaction Group By");
+
+        if not SalesHeader.GET(SalesHeader."Document Type"::Order, EMIJnlLine."Reference No.") then
+            FinalizeEMIJnlLines(
+              EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0022, SalesHeader.TABLECAPTION),
+              "EMI Journal Line");
+
+        SalesLine.SETRANGE("Document Type", SalesHeader."Document Type");
+        SalesLine.SETRANGE("Document No.", SalesHeader."No.");
+        if SalesLine.FIND('-') then
+            repeat
+                tmpSalesLine.INIT;
+                tmpSalesLine.COPY(SalesLine);
+                tmpSalesLine."Qty. to Ship" := 0;
+                tmpSalesLine.INSERT;
+            until SalesLine.NEXT = 0;
+
+        repeat
+            if not tmpSalesLine.GET(SalesHeader."Document Type", SalesHeader."No.", EMIJnlLine."Line no.") then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0027, EMIJnlLine."Line no."),
+                  "EMI Journal Line");
+                exit;
+            end;
+
+            if tmpSalesLine.Quantity - tmpSalesLine."Quantity Shipped" < EMIJnlLine.Quantity then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0023, tmpSalesLine."Line No."),
+                  "EMI Journal Line");
+                exit;
+            end;
+
+            tmpSalesLine."Qty. to Ship" := EMIJnlLine.Quantity;
+            tmpSalesLine.MODIFY;
+        until EMIJnlLine.NEXT = 0;
+
+        if tmpSalesLine.FIND('-') then
+            repeat
+                SalesLine.GET(tmpSalesLine."Document Type", tmpSalesLine."Document No.", tmpSalesLine."Line No.");
+                SalesLine.VALIDATE("Qty. to Ship", tmpSalesLine."Qty. to Ship");
+                SalesLine.MODIFY(true);
+            until tmpSalesLine.NEXT = 0;
+
+        COMMIT;
+        if EMISetup."Post Sales Order Shipment" then begin
+            SalesHeader.SetHideValidationDialog(true);
+            SalesHeader.VALIDATE(Ship, true);
+            SalesHeader.VALIDATE(Invoice, false);
+            if not SalesPost.RUN(SalesHeader) then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0026, SalesHeader."No.", GETLASTERRORTEXT),
+                  "EMI Journal Line");
+                exit;
+            end;
+            if EMISetup."Print Sales Order Shipment" then
+                SalesPostPrint.GetReport(SalesHeader);
+        end;
+
+        FinalizeEMIJnlLines(
+          EMIJnlLine, EMIJnlLine."Conversion Status"::Converted,
+          STRSUBSTNO(TEXT0029, SalesHeader.TABLECAPTION, EndUserFreindlyPosition(SalesHeader.GETPOSITION)),
+          "EMI Journal Line");
+    end;
+
+    procedure HandlePurchOrder(): Boolean;
+    var
+        EMIJnlLine: Record "EMI Journal Line";
+        PurchHeader: Record "Purchase Header";
+        PurchLine: Record "Purchase Line";
+        tmpPurchLine: Record "Purchase Line" temporary;
+        PurchPost: Codeunit "Purch.-Post";
+        PurchPostPrint: Codeunit "Purch.-Post + Print";
+    begin
+        CLEAR(tmpPurchLine);
+
+        EMIJnlLine.COPY("EMI Journal Line");
+        EMIJnlLine.SETRANGE("Reference No.", "EMI Journal Line"."Reference No.");
+        EMIJnlLine.SETRANGE("Transaction Group By", "EMI Journal Line"."Transaction Group By");
+
+        if not PurchHeader.GET(PurchHeader."Document Type"::Order, EMIJnlLine."Reference No.") then
+            FinalizeEMIJnlLines(
+              EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0022, PurchHeader.TABLECAPTION),
+              "EMI Journal Line");
+
+        PurchLine.SETRANGE("Document Type", PurchHeader."Document Type");
+        PurchLine.SETRANGE("Document No.", PurchHeader."No.");
+        if PurchLine.FIND('-') then
+            repeat
+                tmpPurchLine.INIT;
+                tmpPurchLine.COPY(PurchLine);
+                tmpPurchLine."Qty. to Receive" := 0;
+                tmpPurchLine.INSERT;
+            until PurchLine.NEXT = 0;
+
+        repeat
+            if not tmpPurchLine.GET(PurchHeader."Document Type", PurchHeader."No.", EMIJnlLine."Line no.") then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0027, EMIJnlLine."Line no."),
+                  "EMI Journal Line");
+                exit;
+            end;
+
+            if tmpPurchLine.Quantity - tmpPurchLine."Quantity Received" < EMIJnlLine.Quantity then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0023, tmpPurchLine."Line No."),
+                  "EMI Journal Line");
+                exit;
+            end;
+
+            tmpPurchLine."Qty. to Receive" := EMIJnlLine.Quantity;
+            tmpPurchLine.MODIFY;
+        until EMIJnlLine.NEXT = 0;
+
+        if tmpPurchLine.FIND('-') then
+            repeat
+                PurchLine.GET(tmpPurchLine."Document Type", tmpPurchLine."Document No.", tmpPurchLine."Line No.");
+                PurchLine.VALIDATE("Qty. to Receive", tmpPurchLine."Qty. to Receive");
+                PurchLine.MODIFY(true);
+            until tmpPurchLine.NEXT = 0;
+
+        COMMIT;
+        if EMISetup."Post Purchase Order Receipt" then begin
+            PurchHeader.SetHideValidationDialog(true);
+            PurchHeader.VALIDATE(Ship, true);
+            PurchHeader.VALIDATE(Invoice, false);
+            if not PurchPost.RUN(PurchHeader) then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0031, PurchHeader."No.", GETLASTERRORTEXT),
+                  "EMI Journal Line");
+                exit;
+            end;
+            if EMISetup."Print Purchase Order Receipt" then
+                PurchPostPrint.GetReport(PurchHeader);
+        end;
+
+        FinalizeEMIJnlLines(
+          EMIJnlLine, EMIJnlLine."Conversion Status"::Converted,
+          STRSUBSTNO(TEXT0029, PurchHeader.TABLECAPTION, EndUserFreindlyPosition(PurchHeader.GETPOSITION)),
+          "EMI Journal Line");
+    end;
+
+    procedure HandleTransferTransfer(): Boolean;
+    begin
+        ItemJournalTemplate.GET(EMISetup."Item Reclass. Journal Template");
+        ItemJournalBatch.GET(ItemJournalTemplate.Name, EMISetup."Item Reclass. Journal Batch");
+
+        ItemJournalLine2.RESET;
+        ItemJournalLine2.SETRANGE("Journal Template Name", ItemJournalTemplate.Name);
+        ItemJournalLine2.SETRANGE("Journal Batch Name", ItemJournalBatch.Name);
+        if not ItemJournalLine2.FIND('+') then
+            ItemJournalLine2.INIT();
+
+        ItemJournalLine.INIT();
+        ItemJournalLine."Line No." := ItemJournalLine2."Line No." + 10000;
+        ItemJournalLine.VALIDATE("Journal Template Name", ItemJournalTemplate.Name);
+        ItemJournalLine.VALIDATE("Journal Batch Name", ItemJournalBatch.Name);
+
+        ItemJournalLine.SetUpNewLine(ItemJournalLine2);
+
+        ItemJournalLine.VALIDATE("Document Date", DT2DATE("EMI Journal Line"."Create Date"));
+        ItemJournalLine.VALIDATE("Posting Date", DT2DATE("EMI Journal Line"."Create Date"));
+
+        ItemJournalLine.VALIDATE("Entry Type", ItemJournalLine."Entry Type"::Transfer);
+
+        ItemJournalLine.VALIDATE("Item No.", "EMI Journal Line"."Product Guid");
+
+        ItemJournalLine.VALIDATE("Location Code", "EMI Journal Line"."From Location Guid");
+        ItemJournalLine.VALIDATE("New Location Code", "EMI Journal Line"."To Location Guid");
+
+        ItemJournalLine.VALIDATE(Quantity, "EMI Journal Line".Quantity);
+
+        ItemJournalLine.VALIDATE(
+          Description,
+          FORMAT(
+            STRSUBSTNO(
+              TEXT0005,
+              "EMI Journal Line"."From Location Guid",
+              "EMI Journal Line"."To Location Guid",
+              "EMI Journal Line".Description),
+            -50));
+
+        if EMISetup."Post Item Reclass. Journal" then begin
+            CLEAR(ItemJnlPostLine);
+            if not ItemJnlPostLine.RUN(ItemJournalLine) then begin
+                FinalizeSingleEMIJnlLine(
+                  "EMI Journal Line", "EMI Journal Line"."Conversion Status"::Error, STRSUBSTNO(TEXT0025, GETLASTERRORTEXT));
+                exit;
+            end;
+        end else
+            ItemJournalLine.INSERT(true);
+
+        FinalizeSingleEMIJnlLine(
+          "EMI Journal Line", "EMI Journal Line"."Conversion Status"::Converted,
+          STRSUBSTNO(TEXT0029, ItemJournalLine.TABLECAPTION, EndUserFreindlyPosition(ItemJournalLine.GETPOSITION)));
+    end;
+
+    procedure HandleTransferOrder(): Boolean;
+    var
+        EMIJnlLine: Record "EMI Journal Line";
+        TransferHeader: Record "Transfer Header";
+        TransferLine: Record "Transfer Line";
+        tmpTransferLine: Record "Transfer Line" temporary;
+    begin
+        CLEAR(tmpTransferLine);
+
+        EMIJnlLine.COPY("EMI Journal Line");
+        EMIJnlLine.SETRANGE("Reference No.", "EMI Journal Line"."Reference No.");
+        EMIJnlLine.SETRANGE("Transaction Group By", "EMI Journal Line"."Transaction Group By");
+
+        if not TransferHeader.GET(EMIJnlLine."Reference No.") then begin
+            FinalizeSingleEMIJnlLine(
+              EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0022, TransferHeader.TABLECAPTION));
+            exit;
+        end;
+
+        TransferLine.SETRANGE("Document No.", TransferHeader."No.");
+        TransferLine.SETRANGE("Derived From Line No.", 0);
+        if TransferLine.FIND('-') then
+            repeat
+                tmpTransferLine.INIT;
+                tmpTransferLine.COPY(TransferLine);
+                tmpTransferLine."Qty. to Ship" := 0;
+                tmpTransferLine.INSERT;
+            until TransferLine.NEXT = 0;
+
+        repeat
+            if not tmpTransferLine.GET(TransferHeader."No.", EMIJnlLine."Line no.") then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0027, EMIJnlLine."Line no."),
+                  "EMI Journal Line");
+                exit;
+            end;
+
+            if (tmpTransferLine.Quantity - tmpTransferLine."Quantity Shipped" < EMIJnlLine.Quantity) or
+               (tmpTransferLine.Quantity - tmpTransferLine."Quantity Received" < EMIJnlLine.Quantity)
+            then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0023, tmpTransferLine."Line No."),
+                  "EMI Journal Line");
+                exit;
+            end;
+
+            tmpTransferLine."Qty. to Ship" := EMIJnlLine.Quantity;
+            tmpTransferLine.MODIFY;
+        until EMIJnlLine.NEXT = 0;
+
+        if tmpTransferLine.FIND('-') then
+            repeat
+                TransferLine.GET(tmpTransferLine."Document No.", tmpTransferLine."Line No.");
+                TransferLine.VALIDATE("Qty. to Ship", tmpTransferLine."Qty. to Ship");
+                TransferLine.MODIFY(true);
+            until tmpTransferLine.NEXT = 0;
+
+
+        if EMISetup."Post Transfer Order Shipment" or EMISetup."Post Transfer Order Receipt" then begin
+            //The Transfer Order is always shipped if "Post Receipt" is TRUE
+            COMMIT;
+            TransferPostShip.SetHideValidationDialog(true);
+            if not TransferPostShip.RUN(TransferHeader) then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0028, TransferHeader."No.", GETLASTERRORTEXT),
+                  "EMI Journal Line");
+                exit;
+            end;
+        end;
+
+        //When the transfer order has been shipped the Qty. to Receive is updated and ready to receive
+        if EMISetup."Post Transfer Order Receipt" then begin
+            COMMIT;
+            TransferPostReceipt.SetHideValidationDialog(true);
+            if not TransferPostReceipt.RUN(TransferHeader) then begin
+                FinalizeEMIJnlLines(
+                  EMIJnlLine, EMIJnlLine."Conversion Status"::Error, STRSUBSTNO(TEXT0028, TransferHeader."No.", GETLASTERRORTEXT),
+                  "EMI Journal Line");
+                exit;
+            end;
+        end;
+
+        FinalizeEMIJnlLines(
+          EMIJnlLine, EMIJnlLine."Conversion Status"::Converted,
+          STRSUBSTNO(TEXT0029, TransferHeader.TABLECAPTION, EndUserFreindlyPosition(TransferHeader.GETPOSITION)),
+          "EMI Journal Line");
+    end;
+
+    procedure ReferenceNoToJnlTemplateName(ReferenceNo: Text[50]): Text[30];
+    begin
+        if STRPOS(ReferenceNo, TEXT0024) > 1 then
+            exit(COPYSTR(ReferenceNo, 1, (STRPOS(ReferenceNo, TEXT0024) - 1)));
+    end;
+
+    procedure ReferenceNoToJnlBatchName(ReferenceNo: Text[50]): Text[30];
+    begin
+        if STRPOS(ReferenceNo, TEXT0024) >= 1 then
+            exit(COPYSTR(ReferenceNo, STRPOS(ReferenceNo, TEXT0024) + STRLEN(TEXT0024), STRLEN(ReferenceNo)));
+    end;
+
+    procedure FinalizeSingleEMIJnlLine(var EMIJnlLine: Record "EMI Journal Line"; ConversionStatus: Integer; ConversionText: Text[250]);
+    var
+        EMIJnlLine2: Record "EMI Journal Line";
+    begin
+        //Sets Conversion Status and Conversion Text on the EMIJnlLine
+        EMIJnlLine2 := EMIJnlLine;
+        with EMIJnlLine2 do begin
+            "Conversion Status" := ConversionStatus;
+            "Conversion Text" := ConversionText;
+            MODIFY;
+        end;
+    end;
+
+    procedure FinalizeEMIJnlLines(var EMIJnlLine: Record "EMI Journal Line"; ConversionStatus: Integer; ConversionText: Text[250]; var EMIJnlLineWithStatusAndText: Record "EMI Journal Line");
+    var
+        EMIJnlLine2: Record "EMI Journal Line";
+        EMIJnlLine3: Record "EMI Journal Line";
+    begin
+        //Sets Conversion Status and Conversion Text on the EMI Journal Lines within the filter set on EMIJnlLines
+        CLEAR(EMIJnlLine2);
+        with EMIJnlLine2 do begin
+            EMIJnlLine2.COPY(EMIJnlLine);
+            if EMIJnlLine2.FIND('-') then
+                repeat
+                    EMIJnlLine3 := EMIJnlLine2;
+                    EMIJnlLine3."Conversion Status" := ConversionStatus;
+                    EMIJnlLine3."Conversion Text" := ConversionText;
+                    EMIJnlLine3.MODIFY;
+                until EMIJnlLine2.NEXT = 0;
+        end;
+
+        with EMIJnlLineWithStatusAndText do begin
+            "Conversion Status" := ConversionStatus;
+            "Conversion Text" := ConversionText;
+        end;
+    end;
+
+    procedure EndUserFreindlyPosition(PositionText: Text[1000]): Text[250];
+    begin
+        while STRPOS(PositionText, TEXT0030) <> 0 do
+            PositionText := DELSTR(PositionText, STRPOS(PositionText, TEXT0030), STRLEN(TEXT0030));
+        PositionText := FORMAT(PositionText, -(MAXSTRLEN("EMI Journal Line"."Conversion Text") - 50));
+        exit(PositionText);
+    end;
+
+    procedure ">>>>>>>>>RetiredFunctionsBelow"();
+    begin
+    end;
+
+    procedure HandleArrival(): Boolean;
+    begin
+        //This function is not called in this version
+        case "EMI Journal Line"."Transaction Sub Type" of
+            'TRANSFER':
+                // Will create Transfers from Virtual Transit Location to Own location.
+                exit(HandleArrivedDepartTransfer(false));
+            'ADJUST_UP':
+                // Will create Item Journal Lines with "Pos. Adjustment" lines.
+                exit(HandleAdjust(true));
+            'PURCASE':
+                begin
+                    // Not implemented
+                    ConversionText :=
+                      STRSUBSTNO(TEXT0016,
+                      "EMI Journal Line"."Transaction Type" + ' ' + "EMI Journal Line"."Transaction Sub Type");
+                    exit(false);
+                end;
+            else begin
+                    ConversionText := STRSUBSTNO(TEXT0017, "EMI Journal Line"."Transaction Type" + ' ' + "EMI Journal Line"."Transaction Sub Type"
+                );
+                    exit(false);
+                end;
+        end;
+    end;
+
+    procedure HandleDeparture(): Boolean;
+    begin
+        //This function is not called in this version
+        case "EMI Journal Line"."Transaction Sub Type" of
+            'TRANSFER':
+                // Will create Item Reclas. Lines from Own Location to virtual Transit Location.
+                exit(HandleArrivedDepartTransfer(true));
+            'ADJUST_DOWN':
+                // Will create Item Journal Lines with "Neg. Adjustment" lines
+                exit(HandleAdjust(false));
+            'SALES_ORDER':
+                // Locate Sales Order and update "Quantity to ship". Post if selected.
+                exit(HandleSalesOrder());
+            'SERVICE_ORDER':
+                begin
+                    // Not implemented
+                    ConversionText :=
+                      STRSUBSTNO(TEXT0016,
+                      "EMI Journal Line"."Transaction Type" + ' ' + "EMI Journal Line"."Transaction Sub Type");
+                    exit(false);
+                end;
+            else begin
+                    ConversionText := STRSUBSTNO(TEXT0017, "EMI Journal Line"."Transaction Type" + ' ' + "EMI Journal Line"."Transaction Sub Type"
+                );
+                    exit(false);
+                end;
+        end;
+    end;
+
+    procedure PostPrevJournalLines(JournalType: Option " ",Item,"Reclass.","Phys.");
+    begin
+        //This function is not called in this version
+        // Check if there are anything to post, if there are post it, if the type is different from last type.
+        if true then begin
+            if (JournalType <> LastJournalType) and (LastJournalType <> LastJournalType::" ") then begin
+                ItemJournalLine2.RESET;
+
+                case LastJournalType of
+                    LastJournalType::Item:
+                        begin
+                            ItemJournalLine2.SETRANGE("Journal Template Name", EMISetup."Item Journal Template Name");
+                            ItemJournalLine2.SETRANGE("Journal Batch Name", EMISetup."Item Journal Batch Name");
+                        end;
+                    LastJournalType::"Reclass.":
+                        begin
+                            ItemJournalLine2.SETRANGE("Journal Template Name", EMISetup."Item Reclass. Journal Template");
+                            ItemJournalLine2.SETRANGE("Journal Batch Name", EMISetup."Item Reclass. Journal Batch");
+                        end;
+                    LastJournalType::"Phys.":
+                        begin
+                            ItemJournalLine2.SETRANGE("Journal Template Name", EMISetup."Phys. Invent. Journal Template");
+                            ItemJournalLine2.SETRANGE("Journal Batch Name", EMISetup."Phys. Invent. Journal Batch");
+                        end;
+                    else
+                end;
+
+                if ItemJournalLine2.FIND('-') then begin
+                    CLEAR(ItemJnlPostBatch);
+                    if not ItemJnlPostBatch.RUN(ItemJournalLine2) then
+                        PostText := STRSUBSTNO(TEXT0021, FORMAT(LastJournalType))
+                    else
+                        PostText := '';
+                end;
+            end;
+        end;
+        LastJournalType := JournalType;
+    end;
+
+    procedure HandleAdjust(AdjustUp: Boolean): Boolean;
+    begin
+        ///This function is not called in this version
+        PostPrevJournalLines(LastJournalType::Item);
+
+        if "EMI Journal Line"."Item Journal Template Name" = '' then
+            "EMI Journal Line"."Item Journal Template Name" := EMISetup."Item Journal Template Name";
+
+        if "EMI Journal Line"."Item Journal Batch Name" = '' then
+            "EMI Journal Line"."Item Journal Batch Name" := EMISetup."Item Journal Batch Name";
+
+        ItemJournalTemplate.GET("EMI Journal Line"."Item Journal Template Name");
+        ItemJournalBatch.GET(ItemJournalTemplate.Name, "EMI Journal Line"."Item Journal Batch Name");
+
+        ItemJournalLine2.RESET;
+        ItemJournalLine2.SETRANGE("Journal Template Name", ItemJournalTemplate.Name);
+        ItemJournalLine2.SETRANGE("Journal Batch Name", ItemJournalBatch.Name);
+        if not ItemJournalLine2.FIND('+') then
+            ItemJournalLine2.INIT();
+
+        ItemJournalLine.INIT();
+        ItemJournalLine."Line No." := ItemJournalLine2."Line No." + 10000;
+        ItemJournalLine.VALIDATE("Journal Template Name", ItemJournalTemplate.Name);
+        ItemJournalLine.VALIDATE("Journal Batch Name", ItemJournalBatch.Name);
+
+        ItemJournalLine.SetUpNewLine(ItemJournalLine2);
+
+        if AdjustUp then
+            ItemJournalLine.VALIDATE("Entry Type", ItemJournalLine."Entry Type"::"Positive Adjmt.")
+        else
+            ItemJournalLine.VALIDATE("Entry Type", ItemJournalLine."Entry Type"::"Negative Adjmt.");
+
+        ItemJournalLine.VALIDATE("Document Date", DT2DATE("EMI Journal Line"."Create Date"));
+        ItemJournalLine.VALIDATE("Posting Date", DT2DATE("EMI Journal Line"."Create Date"));
+        ItemJournalLine.VALIDATE("Item No.", "EMI Journal Line"."Product Guid");
+
+        ItemJournalLine.VALIDATE("Location Code", "EMI Journal Line"."Owner Location Guid");
+        ItemJournalLine.VALIDATE(Quantity, "EMI Journal Line".Quantity);
+        ItemJournalLine.VALIDATE(Description, TEXT0007);
+
+        // Add the description from the EMI line.
+        ItemJournalLine.VALIDATE(Description, FORMAT(ItemJournalLine.Description + ' ' + "EMI Journal Line".Description, -50));
+
+        ItemJournalLine.INSERT(true);
+
+        ItemJournalCount := ItemJournalCount + 1;
+
+        ConversionText := STRSUBSTNO(TEXT0013, ItemJournalLine."Line No.");
+
+        exit(true);
+    end;
+
+    procedure HandleOrder(): Boolean;
+    begin
+        //This function is not called in this version
+        // Create new header if none existing or Transfer-To code has changed.
+        if TransferHeader."Transfer-to Code" <> "EMI Journal Line"."To Location Guid" then begin
+            TransferHeader.INIT;
+            TransferHeader.INSERT(true);
+
+            if "EMI Journal Line"."From Location Guid" <> '' then
+                TransferHeader.VALIDATE("Transfer-from Code", "EMI Journal Line"."From Location Guid")
+            else
+                TransferHeader.VALIDATE("Transfer-from Code", EMISetup."Transfer-From Code");
+            TransferHeader.VALIDATE("Transfer-to Code", "EMI Journal Line"."To Location Guid");
+            if TransferHeader."In-Transit Code" = '' then
+                TransferHeader.VALIDATE("In-Transit Code", EMISetup."Order Transit Location Code");
+            TransferHeader.MODIFY(true);
+
+            OrderNextLineNo := 0;
+        end;
+
+        // Add line
+        OrderNextLineNo := OrderNextLineNo + 10000;
+
+        TransferLine.INIT();
+        TransferLine.VALIDATE("Document No.", TransferHeader."No.");
+        TransferLine."Line No." := OrderNextLineNo;
+        TransferLine.VALIDATE("Item No.", "EMI Journal Line"."Product Guid");
+        if "EMI Journal Line".Description <> '' then
+            TransferLine.VALIDATE(Description, "EMI Journal Line".Description);
+        TransferLine.VALIDATE(Quantity, "EMI Journal Line".Quantity);
+        TransferLine.INSERT(true);
+
+        TransferOrderCount := TransferOrderCount + 1;
+
+        ConversionText := STRSUBSTNO(TEXT0018, TransferHeader."No.");
+
+        exit(true);
+    end;
+
+    procedure HandleTransfer(): Boolean;
+    begin
+        //This function is not called in this version
+        case "EMI Journal Line"."Transaction Sub Type" of
+            'TRANSFER':
+                // Will create a Reclasification Jnl Line and post the relocation.
+                exit(HandleTransferTransfer());
+            'TRANSFER_ORDER':
+                // Will modify  the transfer order, ship, recieve and post it.
+                exit(HandleTransferOrder());
+            else begin
+                    ConversionText :=
+                      STRSUBSTNO(TEXT0017, "EMI Journal Line"."Transaction Type" + ' ' + "EMI Journal Line"."Transaction Sub Type");
+                    exit(false);
+                end;
+        end;
+    end;
+
+    procedure HandleArrivedDepartTransfer(FromOwn: Boolean): Boolean;
+    var
+        TransferOrderReceived: Decimal;
+    begin
+        //This function is no longer called. Former name: HandleTransfer
+        // Handle transfer orders.
+        if "EMI Journal Line"."Reference No." <> '' then begin
+            // Find the transfer order. Copy to temporary to keep track of received items.
+            if TransferHeader.GET("EMI Journal Line"."Reference No.") then begin
+                if not tmpTransferHeader.GET("EMI Journal Line"."Reference No.") then begin
+                    tmpTransferHeader.INIT;
+                    tmpTransferHeader.COPY(TransferHeader);
+                    tmpTransferHeader.INSERT(false);
+                    TransferLine.SETRANGE("Document No.", tmpTransferHeader."No.");
+                    TransferLine.SETRANGE("Derived From Line No.", 0);
+                    if TransferLine.FIND('-') then
+                        repeat
+                            tmpTransferLine.INIT;
+                            tmpTransferLine.COPY(TransferLine);
+                            tmpTransferLine."Qty. to Receive" := 0;
+                            tmpTransferLine.INSERT(false);
+                        until TransferLine.NEXT = 0
+                end;
+
+                TransferOrderReceived := "EMI Journal Line".Quantity;
+
+                tmpTransferLine.SETRANGE("Document No.", tmpTransferHeader."No.");
+                tmpTransferLine.SETRANGE("Item No.", "EMI Journal Line"."Product Guid");
+                if tmpTransferLine.FIND('-') then
+                    repeat
+                        if tmpTransferLine."Qty. in Transit" >= TransferOrderReceived then begin
+                            tmpTransferLine."Qty. to Receive" := TransferOrderReceived;
+                            tmpTransferLine.MODIFY(false);
+                            TransferOrderReceived := 0;
+                        end else begin
+                            tmpTransferLine."Qty. to Receive" := tmpTransferLine."Qty. in Transit";
+                            tmpTransferLine.MODIFY(false);
+                            TransferOrderReceived := TransferOrderReceived - tmpTransferLine."Qty. in Transit";
+                        end;
+                    until (tmpTransferLine.NEXT = 0) or (TransferOrderReceived = 0);
+
+                if TransferOrderReceived > 0 then begin
+                    // Error. To many received.
+                    ConversionError := true;
+                    ConversionText := STRSUBSTNO(TEXT0008,
+                      tmpTransferHeader."No.",
+                      "EMI Journal Line"."Product Guid",
+                      "EMI Journal Line".Quantity);
+                end;
+            end else begin
+                // Error - Transfer Order Not found.
+                ConversionError := true;
+                ConversionText := STRSUBSTNO(TEXT0009, "EMI Journal Line"."Reference No.");
+            end;
+
+            if not ConversionError then
+                ConversionText := STRSUBSTNO(TEXT0014, tmpTransferHeader."No.");
+
+        end else begin
+            PostPrevJournalLines(LastJournalType::"Reclass.");
+
+            if "EMI Journal Line"."Item Journal Template Name" = '' then
+                "EMI Journal Line"."Item Journal Template Name" := EMISetup."Item Reclass. Journal Template";
+
+            if "EMI Journal Line"."Item Journal Batch Name" = '' then
+                "EMI Journal Line"."Item Journal Batch Name" := EMISetup."Item Reclass. Journal Batch";
+
+            ItemJournalTemplate.GET("EMI Journal Line"."Item Journal Template Name");
+            ItemJournalBatch.GET(ItemJournalTemplate.Name, "EMI Journal Line"."Item Journal Batch Name");
+
+            ItemJournalLine2.RESET;
+            ItemJournalLine2.SETRANGE("Journal Template Name", ItemJournalTemplate.Name);
+            ItemJournalLine2.SETRANGE("Journal Batch Name", ItemJournalBatch.Name);
+            if not ItemJournalLine2.FIND('+') then
+                ItemJournalLine2.INIT();
+
+            ItemJournalLine.INIT();
+            ItemJournalLine."Line No." := ItemJournalLine2."Line No." + 10000;
+            ItemJournalLine.VALIDATE("Journal Template Name", ItemJournalTemplate.Name);
+            ItemJournalLine.VALIDATE("Journal Batch Name", ItemJournalBatch.Name);
+
+            ItemJournalLine.SetUpNewLine(ItemJournalLine2);
+
+            ItemJournalLine.VALIDATE("Document Date", DT2DATE("EMI Journal Line"."Create Date"));
+            ItemJournalLine.VALIDATE("Posting Date", DT2DATE("EMI Journal Line"."Create Date"));
+
+            ItemJournalLine.VALIDATE("Entry Type", ItemJournalLine."Entry Type"::Transfer);
+
+            ItemJournalLine.VALIDATE("Item No.", "EMI Journal Line"."Product Guid");
+
+            if EMISetup."Use Transit Location" then begin
+                Location.GET(EMISetup."Transit Location Code");
+                // Use TransitLocation
+                if "EMI Journal Line"."From Location Guid" = "EMI Journal Line"."Owner Location Guid" then begin
+                    // Transfer from owner.
+                    ItemJournalLine.VALIDATE("Location Code", "EMI Journal Line"."From Location Guid");
+                    ItemJournalLine.VALIDATE("New Location Code", Location.Code);
+                end else begin
+                    // Transfer to owner.
+                    ItemJournalLine.VALIDATE("Location Code", Location.Code);
+                    ItemJournalLine.VALIDATE("New Location Code", "EMI Journal Line"."To Location Guid");
+                end;
+            end else begin
+                // Direct transfer (No transit location)
+                ItemJournalLine.VALIDATE("Location Code", "EMI Journal Line"."From Location Guid");
+                ItemJournalLine.VALIDATE("New Location Code", "EMI Journal Line"."To Location Guid");
+            end;
+
+            ItemJournalLine.VALIDATE(Quantity, "EMI Journal Line".Quantity);
+
+            if EMISetup."Use Transit Location" then
+                ItemJournalLine.VALIDATE(Description, STRSUBSTNO(TEXT0004,
+                  "EMI Journal Line"."From Location Guid",
+                  "EMI Journal Line"."To Location Guid",
+                  EMISetup."Transit Location Code"))
+            else
+                ItemJournalLine.VALIDATE(Description, STRSUBSTNO(TEXT0005,
+                  "EMI Journal Line"."From Location Guid",
+                  "EMI Journal Line"."To Location Guid"));
+
+            // Add the description from the EMI line.
+            ItemJournalLine.VALIDATE(Description, FORMAT(ItemJournalLine.Description + ' ' + "EMI Journal Line".Description, -50));
+
+            ItemJournalLine.INSERT(true);
+
+            ReclassJournalCount := ReclassJournalCount + 1;
+
+            ConversionText := STRSUBSTNO(TEXT0020, ItemJournalLine."Line No.");
+        end;
+
+        exit(not ConversionError);
+    end;
+}
+

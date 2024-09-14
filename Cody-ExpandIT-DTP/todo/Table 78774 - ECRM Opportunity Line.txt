@@ -1,0 +1,129 @@
+table 78774 "ECRM Opportunity Line"
+{
+    // version EMCRM3.02
+
+    // EMCRM2.15 2010-09-01 JR   * Removed variables ICPartner and ItemCrossReference from ProductGuid OnValidate trigger.
+    //                             Couldn't see why they were there.
+    // 
+    // EMCRM3.01 2012-05-14 PB   * Features for Sales 4EMCRM3.01.01
+    // EMCRM3.02  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+
+    fields
+    {
+        field(2; CompanyGuid; Code[20])
+        {
+            Caption = 'Company Guid', Comment = 'DAN="Regnskabs GUID",DEU="Kontakt-Nr.",ESP="ID Compañía",FRA="Guid Société",SVE="Företags Guid"';
+        }
+        field(3; OpportunityGuid; Code[20])
+        {
+            Caption = 'Opportunity Guid', Comment = 'DAN="Lead GUID",DEU="Verkaufschancencode",ESP="ID Oportunidad",FRA="Guid Opportunité",SVE="Affärsmöjlighets Guid"';
+        }
+        field(4; LineNumber; Integer)
+        {
+            Caption = 'Line No.', Comment = 'DAN="Linjenr.",DEU="Zeilennr.",ESP="Nº línea",FRA="N° ligne",SVE="Radnr."';
+        }
+        field(5; LineTypeGuid; Option)
+        {
+            Caption = 'Type', Comment = 'DAN="Type",DEU="Art",ESP="Tipo",FRA="Type",SVE="Typ"';
+            OptionCaption = ' ,G/L Account,Item,Resource,Fixed Asset,Charge (Item)', Comment = 'DAN=" ,Finans,Vare,Ressource,Anlæg,Gebyr (vare)",DEU=" ,Sachkonto,Artikel,Ressource,WG/Anlage,Zu-/Abschlag (Artikel)",ESP=" ,Cuenta,Producto,Recurso,Activo fijo,Cargo (prod.)",FRA=" ,Compte général,Article,Ressource,Immobilisation,Frais annexes",SVE=" ,Redov.konto,Artikel,Resurs,Anl.tillgång,Omkostnad (artikel)"';
+            OptionMembers = " ","G/L Account",Item,Resource,"Fixed Asset","Charge (Item)";
+        }
+        field(6; ProductGuid; Code[20])
+        {
+            Caption = 'No.', Comment = 'DAN="Nummer",DEU="Nr.",ESP="Nº",FRA="N°",SVE="Nr."';
+            TableRelation = IF (LineTypeGuid = CONST(" ")) "Standard Text"
+            ELSE
+            IF (LineTypeGuid = CONST("G/L Account")) "G/L Account"
+            ELSE
+            IF (LineTypeGuid = CONST(Item)) Item
+            ELSE
+            IF (LineTypeGuid = CONST(Resource)) Resource
+            ELSE
+            IF (LineTypeGuid = CONST("Fixed Asset")) "Fixed Asset"
+            ELSE
+            IF (LineTypeGuid = CONST("Charge (Item)")) "Item Charge";
+        }
+        field(11; Description; Text[50])
+        {
+            Caption = 'Description', Comment = 'DAN="Beskrivelse",DEU="Beschreibung",ESP="Descripción",FRA="Désignation",SVE="Beskrivning"';
+        }
+        field(13; UnitOfMeasureGuid; Text[10])
+        {
+            Caption = 'Unit of Measure', Comment = 'DAN="Enhed",DEU="Einheit",ESP="Unidad medida",FRA="Unité",SVE="Enhet"';
+        }
+        field(15; Quantity; Decimal)
+        {
+            Caption = 'Quantity', Comment = 'DAN="Antal",DEU="Menge",ESP="Cantidad",FRA="Quantité",SVE="Antal"';
+            DecimalPlaces = 0 : 5;
+        }
+        field(22; ListPrice; Decimal)
+        {
+            Caption = 'Unit Price', Comment = 'DAN="Salgspris",DEU="VK-Preis",ESP="Precio venta",FRA="Prix unitaire",SVE="A-pris"';
+        }
+        field(29; AmountTotal; Decimal)
+        {
+            Caption = 'Amount', Comment = 'DAN="Beløb",DEU="Betrag",ESP="Importe",FRA="Montant",SVE="Belopp"';
+            Editable = false;
+        }
+        field(30; DocumentGuid; Code[20])
+        {
+            Caption = 'Sales Document No.', Comment = 'DAN="Salgsbilagsnr.",DEU="Verkaufsbelegnr.",ESP="Nº documento venta",FRA="N° document vente",SVE="Förs.dokumentnr"';
+
+            trigger OnValidate();
+            var
+                Opp: Record Opportunity;
+                SalesHeader: Record "Sales Header";
+            begin
+            end;
+        }
+        field(31; SalesDocumentType; Option)
+        {
+            Caption = 'Sales Document Type', Comment = 'DAN="Salgsbilagstype",DEU="Verkaufsbelegart",ESP="Tipo doc. venta",FRA="Type document vente",SVE="Förs.dokumenttyp"';
+            OptionCaption = ' ,Quote,Order,Posted Invoice', Comment = 'DAN=" ,Tilbud,Ordre,Bogf. faktura",DEU=" ,Angebot,Auftrag,Gebuchte Rechnung",ESP=" ,Oferta,Pedido,Factura registrada",FRA=" ,Devis,Commande,Facture enregistrée",SVE=" ,Offert,Order,Bokförd faktura"';
+            OptionMembers = " ",Quote,"Order","Posted Invoice";
+        }
+        field(40; CompositeKeyType; Integer)
+        {
+            Caption = 'CompositeKeyType', Comment = 'ESP="Tipo de Clave Compuesta"';
+        }
+        field(41; CompositeKey; Code[20])
+        {
+            Caption = 'CompositeKey', Comment = 'ESP="Clave Compuesta"';
+        }
+        field(10000; ModifiedDate; Date)
+        {
+            Caption = 'Modified Date', Comment = 'DAN="Rettet den",DEU="Änderungsdatum",ESP="Fecha últ. modificación",FRA="Date de modification",SVE="Uppdateringsdatum"';
+        }
+        field(10001; ModifiedTime; Time)
+        {
+            Caption = 'Modified Time', Comment = 'DAN="Rettet kl.",DEU="Änderungsuhrzeit",ESP="Hora últ. modificación",FRA="Heure dern. modification",SVE="Ändringstid"';
+        }
+        field(770; "Convert Status"; Option)
+        {
+            Caption = 'Convert Status', Comment = 'DAN="Konverteringsstatus",DEU="Umwandlungsstatus",ESP="Estado de conversión",FRA="Nouveau statut",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected', Comment = 'DAN="Ny,Overført,Afvist",DEU="Neu,umgewandelt,abgelehnt",ESP="Nuevo,Convertido,Rechazado",FRA="Nouveau,Accepté,Rejeté",SVE="Ny,Godkänd,Avbruten"';
+            OptionMembers = New,Converted,Rejected;
+        }
+        field(771; BASGuid; Integer)
+        {
+            Caption = 'BAS Guid', Comment = 'DAN="BAS GUID",DEU="BAS Code",ESP="ID del BAS",FRA="Guid BAS",SVE="BAS Guid"';
+        }
+        field(772; RecordAction; Text[15])
+        {
+            Caption = 'Record Action', Comment = 'DAN="Post-handling",DEU="Datensatzaktion",ESP="Acción Registro",FRA="Action sur l''enregistrement",SVE="Posthantering"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; BASGuid)
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

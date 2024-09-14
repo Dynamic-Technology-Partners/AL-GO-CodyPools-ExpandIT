@@ -1,0 +1,133 @@
+page 78770 "ECRM Company List"
+{
+    // version EMCRM2.15.01
+
+    // EMCRM2.15.01   2011-02-10  PB  * Moved SETFILTER to the OnOpen trigger to apply to changed behavior in RTC.
+    // EMCRM2.15.01   2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    InsertAllowed = false;
+    PageType = List;
+    SourceTable = "ECRM Company";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1160840000)
+            {
+                field(BASGuid; BASGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(RecordAction; RecordAction)
+                {
+                    ApplicationArea = All;
+                }
+                field("Convert Status"; "Convert Status")
+                {
+                    ApplicationArea = All;
+                }
+                field(CompanyGuid; CompanyGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(CompanyName; CompanyName)
+                {
+                    ApplicationArea = All;
+                }
+                field(Address1; Address1)
+                {
+                    ApplicationArea = All;
+                }
+                field(Address2; Address2)
+                {
+                    ApplicationArea = All;
+                }
+                field(CityName; CityName)
+                {
+                    ApplicationArea = All;
+                }
+                field(PhoneNo; PhoneNo)
+                {
+                    ApplicationArea = All;
+                }
+                field(TerritoryGuid; TerritoryGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(UserGuid; UserGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(CountryGuid; CountryGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(ModifiedDate; ModifiedDate)
+                {
+                    ApplicationArea = All;
+                }
+                field(FaxNo; FaxNo)
+                {
+                    ApplicationArea = All;
+                }
+                field(ZipCode; ZipCode)
+                {
+                    ApplicationArea = All;
+                }
+                field(CountyGuid; CountyGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(EMailAddress; EMailAddress)
+                {
+                    ApplicationArea = All;
+                }
+                field("Home Page"; "Home Page")
+                {
+                    ApplicationArea = All;
+                }
+                field("Business Relation Code"; "Business Relation Code")
+                {
+                    ApplicationArea = All;
+                }
+                field(ModifiedTime; ModifiedTime)
+                {
+                    ApplicationArea = All;
+                }
+            }
+            field(bShowAll; bShowAll)
+            {
+                Caption = '&Show all', Comment = 'DAN="&Vis alle",DEU="&Alle anzeigen",ESP="&Muestra todos",FRA="Affic&her tout",SVE="&Visa alla"';
+                ApplicationArea = All;
+
+                trigger OnValidate();
+                begin
+                    bShowAllOnPush;
+                end;
+            }
+        }
+    }
+
+    actions
+    {
+    }
+
+    trigger OnOpenPage();
+    begin
+        SETFILTER("Convert Status", '<>1');
+    end;
+
+    var
+        bShowAll: Boolean;
+
+    local procedure bShowAllOnPush();
+    begin
+        if (bShowAll) then begin
+            SETFILTER("Convert Status", '');
+        end else begin
+            SETFILTER("Convert Status", '<>1');
+        end;
+    end;
+}
+

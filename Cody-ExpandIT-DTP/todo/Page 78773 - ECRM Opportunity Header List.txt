@@ -1,0 +1,133 @@
+page 78773 "ECRM Opportunity Header List"
+{
+    // version EMCRM2.15.01
+
+    // EMCRM2.15.01  2011-02-10  PB  * Moved SETFILTER to the OnOpen trigger to apply to changed behavior in RTC.
+    // EMCRM2.15.01  2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    InsertAllowed = false;
+    PageType = List;
+    SourceTable = "ECRM Opportunity Header";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1160840000)
+            {
+                field(BASGuid; BASGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(RecordAction; RecordAction)
+                {
+                    ApplicationArea = All;
+                }
+                field("Convert Status"; "Convert Status")
+                {
+                    ApplicationArea = All;
+                }
+                field(OpportunityGuid; OpportunityGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(Description; Description)
+                {
+                    ApplicationArea = All;
+                }
+                field(UserGuid; UserGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(ContactPersonGuid; ContactPersonGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(CompanyGuid; CompanyGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(SalesCycleGuid; SalesCycleGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(DocumentGuid; DocumentGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(OpportunityStatusGuid; OpportunityStatusGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(PriorityGuid; PriorityGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(Closed; Closed)
+                {
+                    ApplicationArea = All;
+                }
+                field(SalesCycleStageGuid; SalesCycleStageGuid)
+                {
+                    ApplicationArea = All;
+                }
+                field(EstimatedAmount; EstimatedAmount)
+                {
+                    ApplicationArea = All;
+                }
+                field(OpportunityProbability; OpportunityProbability)
+                {
+                    ApplicationArea = All;
+                }
+                field(CompletionPercentage; CompletionPercentage)
+                {
+                    ApplicationArea = All;
+                }
+                field(EstimatedDate; EstimatedDate)
+                {
+                    ApplicationArea = All;
+                }
+                field(SalesDocumentType; SalesDocumentType)
+                {
+                    ApplicationArea = All;
+                }
+                field(ModifiedDate; ModifiedDate)
+                {
+                    ApplicationArea = All;
+                }
+            }
+            field(bShowAll; bShowAll)
+            {
+                Caption = '&Show all', Comment = 'DAN="&Vis alle",DEU="&Alle anzeigen",ESP="&Muestra todos",FRA="Affic&her tout",SVE="&Visa alla"';
+                ApplicationArea = All;
+
+                trigger OnValidate();
+                begin
+                    bShowAllOnPush;
+                end;
+            }
+        }
+    }
+
+    actions
+    {
+    }
+
+    trigger OnOpenPage();
+    begin
+        SETFILTER("Convert Status", '<>1');
+    end;
+
+    var
+        bShowAll: Boolean;
+
+    local procedure bShowAllOnPush();
+    begin
+        if (bShowAll) then begin
+            SETFILTER("Convert Status", '');
+        end else begin
+            SETFILTER("Convert Status", '<>1');
+        end;
+    end;
+}
+

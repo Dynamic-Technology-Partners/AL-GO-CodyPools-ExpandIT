@@ -1,0 +1,47 @@
+table 78775 "ECRM Contact Mailing Group"
+{
+    // version EMCRM2.14
+
+
+    fields
+    {
+        field(1; "Contact No."; Code[20])
+        {
+            Caption = 'Contact No.', Comment = 'DAN="Kontaktnr.",DEU="Kontaktnr.",ESP="Nº contacto",FRA="N° contact",SVE="Kontaktnr"';
+            NotBlank = true;
+            TableRelation = Contact;
+        }
+        field(2; "Mailing Group Code"; Code[10])
+        {
+            Caption = 'Mailing Group Code', Comment = 'DAN="Mailgruppekode",DEU="Verteilercode",ESP="Cód. grupo correo",FRA="Code groupe de distribution",SVE="Utskicksgruppkod"';
+            NotBlank = true;
+            TableRelation = "Mailing Group";
+        }
+        field(770; "Convert Status"; Option)
+        {
+            Caption = 'Convert Status', Comment = 'DAN="Konverteringsstatus",DEU="Umwandlungsstatus",ESP="Estado de conversión",FRA="Nouveau statut",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected', Comment = 'DAN="Ny,Overført,Afvist",DEU="Neu,umgewandelt,abgelehnt",ESP="Nuevo,Convertido,Rechazado",FRA="Nouveau,Accepté,Rejeté",SVE="Ny,Godkänd,Avbruten"';
+            OptionMembers = New,Converted,Rejected;
+        }
+        field(771; BASGuid; Integer)
+        {
+            Caption = 'BASGuid', Comment = 'ESP="BASGuid"';
+        }
+        field(772; RecordAction; Text[15])
+        {
+            Caption = 'RecordAction', Comment = 'ESP="Grabar Acción"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; BASGuid)
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

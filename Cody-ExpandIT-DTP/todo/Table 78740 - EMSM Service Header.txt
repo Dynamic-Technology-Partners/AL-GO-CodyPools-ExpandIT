@@ -1,0 +1,111 @@
+table 78740 "EMSM Service Header"
+{
+    // version EMSM2.14
+
+    // EMSM2.14  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'EMSM Service Header', Comment = 'DAN="EMSM Serviceordrehoved",DEU="EMSM Service-Kopf",ESP="Cabecera de Servicio",FRA="EMSM en-tête service",SVE="ExpandIT servicehuvud"';
+    DataCaptionFields = "No.", Description;
+
+
+    fields
+    {
+        field(1; "No."; Code[20])
+        {
+            Caption = 'No.', Comment = 'DAN="Nummer",DEU="Nr.",ESP="Num.",FRA="N°",SVE="Nr"';
+            DataClassification = CustomerContent;
+        }
+        field(2; Description; Text[50])
+        {
+            Caption = 'Description', Comment = 'DAN="Beskrivelse",DEU="Beschreibung",ESP="Descripción",FRA="Désignation",SVE="Beskrivning"';
+            DataClassification = CustomerContent;
+        }
+        field(3; "Document Type"; Option)
+        {
+            Caption = 'Document Type', Comment = 'DAN="Bilagstype",DEU="Dokumententyp",ESP="Tipo de documento",FRA="Type document",SVE="Dokumenttyp"';
+            OptionCaption = 'Quote,Order', Comment = 'DAN="Tilbud,Ordre",DEU="Angebot,Auftrag",ESP="Cotización,Pedido",FRA="Devis,Commande",SVE="Offert,Order"';
+            OptionMembers = Quote,"Order";
+            DataClassification = CustomerContent;
+        }
+        field(4; "Service Order Type"; Code[10])
+        {
+            Caption = 'Service Order Type', Comment = 'DAN="Serviceordretype",DEU="Serviceauftragstyp",ESP="Tipo pedido servicio",FRA="Type commande service",SVE="Serviceordertyp"';
+            TableRelation = "Service Order Type";
+            DataClassification = CustomerContent;
+        }
+        field(6; Status; Option)
+        {
+            Caption = 'Status', Comment = 'DAN="Status",DEU="Status",ESP="Estado",FRA="Statut",SVE="Status"';
+            OptionCaption = 'Pending,In Process,Finished,On Hold', Comment = 'DAN="Igangsat,I arbejde,Udført,Afvent",DEU="unerledigt,in Bearbeitung,Beendet,angehalten",ESP="Pendiente,En proceso,Terminado,En espera",FRA="Suspendu,En cours,Terminé,En attente",SVE="Förestående,Pågående,Avslutad,Stoppad"';
+            OptionMembers = Pending,"In Process",Finished,"On Hold";
+            DataClassification = CustomerContent;
+        }
+        field(8; "Customer No."; Code[20])
+        {
+            Caption = 'Customer No.', Comment = 'DAN="Debitornr.",DEU="Kunden-Nr.",ESP="Num. de cliente",FRA="N° client",SVE="Kundnr"';
+            TableRelation = Customer;
+            DataClassification = CustomerContent;
+        }
+        field(9; Name; Text[30])
+        {
+            Caption = 'Name', Comment = 'DAN="Navn",DEU="Name",ESP="Nombre",FRA="Nom",SVE="Namn"';
+            DataClassification = CustomerContent;
+        }
+        field(740; "Saved Date"; Date)
+        {
+            Caption = 'Saved Date', Comment = 'DAN="Gemt dato",DEU="Gespeichertes Datum",ESP="Fecha de almacenamiento",FRA="Enregistré le",SVE="Sparad datum"';
+            DataClassification = CustomerContent;
+        }
+        field(741; "Saved Time"; Time)
+        {
+            Caption = 'Saved Time', Comment = 'DAN="Gemt tidspunkt",DEU="Gespeicherte Zeit",ESP="Hora de almacenamiento",FRA="Enregistré à",SVE="Sparad tid"';
+            DataClassification = CustomerContent;
+        }
+        field(742; "Convert Status"; Option)
+        {
+            Caption = 'Convert Status', Comment = 'DAN="Konverteringsstatus",DEU="Umwandlungsstatus",ESP="Estado de conversión",FRA="Nouveau statut",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected', Comment = 'DAN="Ny,Overført,Afvist",DEU="Neu,umgewandelt,abgelehnt",ESP="Nuevo,Convertido,Rechazado",FRA="Nouveau,Accepté,Rejeté",SVE="Ny,Godkänd,Avbruten"';
+            OptionMembers = New,Converted,Rejected;
+            DataClassification = CustomerContent;
+        }
+        field(744; "Service Header Guid"; Text[38])
+        {
+            Caption = 'Service Header Guid', Comment = 'DAN="Serviceordrehoved GUID",DEU="Anleitung Servicekopf",ESP="ID de Cabecera de Servicio",FRA="GUID en-tête service",SVE="Servicehuvudstyrning"';
+            DataClassification = CustomerContent;
+        }
+        field(748; "BAS Guid"; Integer)
+        {
+            Caption = 'BAS Guid', Comment = 'DAN="BAS GUID",DEU="BAS Anleitung",ESP="ID de BAS",FRA="GUID BAS",SVE="BAS Guid"';
+            DataClassification = CustomerContent;
+        }
+    }
+
+    keys
+    {
+        key(Key1; "BAS Guid")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+
+    trigger OnDelete();
+    begin
+        DispServInvLine.RESET;
+        DispServInvLine.SETCURRENTKEY("Order No.");
+        DispServInvLine.SETRANGE("Order No.", "No.");
+        DispServInvLine.DELETEALL(true);
+
+        DispServItemLine.RESET;
+        DispServItemLine.SETCURRENTKEY("Order No.");
+        DispServItemLine.SETRANGE("Order No.", "No.");
+        DispServItemLine.DELETEALL(true);
+    end;
+
+    var
+        DispServInvLine: Record "EMSM Service Invoice Line";
+        DispServItemLine: Record "EMSM Service Item Line";
+}
+

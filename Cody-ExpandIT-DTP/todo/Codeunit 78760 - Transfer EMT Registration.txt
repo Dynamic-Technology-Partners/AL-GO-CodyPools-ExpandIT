@@ -1,0 +1,127 @@
+codeunit 78760 "Transfer EMT Registration"
+{
+    // version EMT3.01
+
+    // EMT3.00      2011-05-13  PB   * Work type is now taken from Dimension 2 and set on the journal line.
+    //                               * Item Type Guid can now hold the values "RESOURCE" etc.
+    //                               * Invoice level can now have the value "blank". Blank is handled as "1"=Yes.
+    //                               * Changed the sequence of order of the validation of fields in the JobJnlLine in order
+    //                                 to avoid for example No. to be blanked out in certian cases.
+    //                               * Only Registrations with Quantity <> 0 is causing a journal line to be made.
+    // EMT3.01      2018-02-01 FAM   * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    TableNo = "EMT Registration";
+
+    trigger OnRun();
+    var
+        JobJournalLine: Record "Job Journal Line";
+        LineNo: Integer;
+        JobJnlManagement: Codeunit JobJnlManagement;
+        bOK: Boolean;
+        LastJobJournalLine: Record "Job Journal Line";
+    begin
+        if "Transfer Status" <> "Transfer Status"::New then begin
+            ERROR(Text000, FORMAT("Transfer Status"));
+        end;
+
+        //JobJournalLine.LOCKTABLE;
+        if Quantity <> 0 then begin
+            JournalBatchName := "Journal Batch Name";
+
+            LastJobJournalLine.SETRANGE("Journal Template Name", "Journal Template Name");
+            LastJobJournalLine.SETRANGE("Journal Batch Name", JournalBatchName);
+            if LastJobJournalLine.FIND('+') then
+                LineNo := LastJobJournalLine."Line No."
+            else
+                LineNo := 0;
+
+            CLEAR(JobJournalLine);
+            JobJournalLine.INIT;
+
+            JobJournalLine.FILTERGROUP := 2;
+            JobJournalLine.SETRANGE("Journal Template Name", "Journal Template Name");
+            JobJournalLine.FILTERGROUP := 0;
+
+            JobJournalLine.VALIDATE("Journal Template Name", "Journal Template Name");
+            JobJournalLine.VALIDATE("Journal Batch Name", JournalBatchName);
+
+            JobJnlManagement.OpenJnl(JournalBatchName, JobJournalLine);
+            JobJournalLine.SetUpNewLine(LastJobJournalLine);
+
+            LineNo := LineNo + 10000;
+
+            JobJournalLine.VALIDATE("Line No.", LineNo);
+            JobJournalLine.VALIDATE("Posting Date", Date);
+
+            JobJournalLine.VALIDATE("Job No.", "Project Guid");
+
+            // #STARTREGION: REMOVE IN 4.00
+            JobJournalLine.VALIDATE("Job Task No.", "Dimension1 (Phase)");
+            // #ENDREGION: REMOVE IN 4.00
+
+
+            // Select the correct item type (Resource, Item, Account)
+            bOK := true;
+            case "Item Type Guid" of
+                '0', 'RESOURCE':
+                    JobJournalLine.VALIDATE(Type, JobJournalLine.Type::Resource);
+                '1', 'ITEM':
+                    JobJournalLine.VALIDATE(Type, JobJournalLine.Type::Item);
+                '2', 'COST':
+                    JobJournalLine.VALIDATE(Type, JobJournalLine.Type::"G/L Account");
+                else
+                    bOK := false;
+            end;
+
+            if not bOK then begin
+                Rec."Transfer Status" := Rec."Transfer Status"::Error;
+                Rec.MODIFY;
+                COMMIT;
+                ERROR(Text001, "Item Type Guid");
+            end;
+            JobJournalLine.VALIDATE("No.", FORMAT("Item Guid", 20));
+
+            JobJournalLine.VALIDATE(Description, Comment);
+            JobJournalLine.VALIDATE("Work Type Code", "Dimension2 (Task)"); //Dimension 2 contains Work Type
+
+            JobJournalLine.VALIDATE(Quantity, Quantity);
+
+            //Let NF Calculate the price. Don't allow changes from external applications
+            //JobJournalLine.VALIDATE("Unit Price", "List Price");
+
+            // #STARTREGION: REMOVE IN 4.00
+            /*
+            // #ENDREGION: REMOVE IN 4.00
+              // 4.0 compatible code:
+              JobJournalLine.VALIDATE("Phase Code", "Dimension1 (Phase)");
+              JobJournalLine.VALIDATE("Task Code", "Dimension2 (Task)");
+              JobJournalLine.VALIDATE("Step Code", "Dimension3 (Step)");
+            // #STARTREGION: REMOVE IN 4.00
+            */
+            // #ENDREGION: REMOVE IN 4.00
+
+            // Mofify, if data is changed in InvoiceLevel table on BAS server
+            case "Invoice Level" of
+                '0':
+                    JobJournalLine.VALIDATE(Chargeable, false);
+                '1', '':
+                    JobJournalLine.VALIDATE(Chargeable, true);
+                else
+                    ERROR(Text002, "Invoice Level");
+            end;
+
+            JobJournalLine.INSERT;
+        end;
+
+        Rec."Transfer Status" := Rec."Transfer Status"::Transferred;
+        Rec.MODIFY;
+
+    end;
+
+    var
+        JournalBatchName: Code[10];
+        Text000: Label '', Comment = 'DAN="Kunne ikke konvertere registrering af typen "';
+        Text001: Label '', Comment = 'DAN="Vare type "';
+        Text002: Label '', Comment = 'DAN="Fakturerbar niveau "';
+}
+

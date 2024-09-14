@@ -1,0 +1,41 @@
+page 78776 "ECRM Setup"
+{
+    // version EMCRM2.15
+
+    // EIS4.0    2010-09-03  JR  * Form created.
+    //                           * EMCRM fields moved from ExpandIT Setup form.
+    // EIS4.0  2018-02-02  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'ECRM Setup', Comment = 'DAN="ECRM Opsætning",DEU="ECRM Setup",ESP="Config. ECRM",FRA="Paramètres ECRM",SVE="ECRM inställningar"';
+    PageType = Card;
+    SourceTable = "ECRM Setup";
+
+
+    layout
+    {
+        area(content)
+        {
+            group(General)
+            {
+                Caption = 'General', Comment = 'DAN="Generelt",DEU="Allgemein",ESP="General",FRA="Général",SVE="Allmänt"';
+                field("Sell-to Customer Template Code"; "Sell-to Customer Template Code")
+                {
+                    ApplicationArea = All;
+                }
+                field(WonCloseOpportunityCode; WonCloseOpportunityCode)
+                {
+                    ApplicationArea = All;
+                }
+                field(LostCloseOpportunityCode; LostCloseOpportunityCode)
+                {
+                    ApplicationArea = All;
+                }
+            }
+        }
+    }
+
+    actions
+    {
+    }
+}
+

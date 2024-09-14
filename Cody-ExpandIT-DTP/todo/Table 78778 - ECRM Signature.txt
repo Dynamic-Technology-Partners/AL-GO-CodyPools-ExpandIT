@@ -1,0 +1,41 @@
+table 78778 "ECRM Signature"
+{
+    // version EMCRM3.01.02
+
+    // EMCRM3.01    2012-05-14  PB  * Features for Sales 4
+    // EMCRM3.01.01 2012-11-01  PB  * Moved to NAV 2013 (NAVW17.00)
+    // EMCRM3.01.02  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+    Caption = 'EMSM Service Signature', Comment = 'DAN="EMSM Service Underskrift",DEU="EMSM Service-Unterschrift",ESP="Firma del Servicio",FRA="Signature service EMSM",SVE="EMSM service underskrift"';
+    DataCaptionFields = "Document Type", "No.";
+    LookupPageID = 78740;
+
+    fields
+    {
+        field(1; "Document Type"; enum "Document Type")
+        {
+            Caption = 'Document Type', Comment = 'DAN="Bilagstype",ESP="Tipo de documento",FRA="Type de document"';
+        }
+        field(2; "No."; Code[20])
+        {
+            Caption = 'Order No.', Comment = 'DAN="Bilagsnr.",DEU="Auftrags-Nr.",ESP="Num. del Pedido",FRA="N° commande",SVE="Ordernr"';
+        }
+        field(3; "BMP Signature"; BLOB)
+        {
+            Caption = 'BMP Signature', Comment = 'DAN="BMP Underskrift",DEU="BMP Unterschrift",ESP="Firma BMP",FRA="Signature BMP",SVE="BMP Signatur"';
+            SubType = Bitmap;
+        }
+    }
+
+    keys
+    {
+        key(Key1; "Document Type", "No.")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

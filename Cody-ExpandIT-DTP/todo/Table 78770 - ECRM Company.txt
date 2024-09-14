@@ -1,0 +1,146 @@
+table 78770 "ECRM Company"
+{
+    // version EMCRM3.02
+
+    // EMCRM3.01 2012-05-14 PB * Features for Sales 4
+    // EMCRM3.02  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+
+    fields
+    {
+        field(1; CompanyGuid; Code[20])
+        {
+            Caption = 'Company Guid', Comment = 'DAN="Regnskabs GUID",DEU="Kontakt-Nr.",ESP="ID Compañía",FRA="Guid Société",SVE="Företags Guid"';
+            TableRelation = Contact WHERE(Type = CONST(Company));
+            //This property is currently not supported
+            //TestTableRelation = false;
+            ValidateTableRelation = false;
+        }
+        field(2; CompanyName; Text[30])
+        {
+            Caption = 'Company Name', Comment = 'DAN="Virksomhedsnavn",DEU="Unternehmensname",ESP="Nombre Compañía",FRA="Nom de la société",SVE="Företagsnamn"';
+        }
+        field(5; Address1; Text[30])
+        {
+            Caption = 'Address 1', Comment = 'DAN="Adresse 1",DEU="Adresse",ESP="Dirección 1",FRA="Adresse 1",SVE="Adress 1"';
+        }
+        field(6; Address2; Text[30])
+        {
+            Caption = 'Address 2', Comment = 'DAN="Adresse 2",DEU="Adresse 2",ESP="Dirección 2",FRA="Adresse 2",SVE="Adress 2"';
+        }
+        field(7; CityName; Text[30])
+        {
+            Caption = 'City', Comment = 'DAN="By",DEU="Ort",ESP="Ciudad",FRA="Ville",SVE="Ort"';
+        }
+        field(9; PhoneNo; Text[30])
+        {
+            Caption = 'Phone No.', Comment = 'DAN="Telefon",DEU="Telefon Nr.",ESP="Nº teléfono",FRA="N° téléphone",SVE="Telefonnr"';
+        }
+        field(15; TerritoryGuid; Code[10])
+        {
+            Caption = 'Territory Guid', Comment = 'DAN="Distriktskode",DEU="Gebietscode",ESP="Cód. territorio",FRA="Guid Secteur",SVE="Distrikts-id"';
+        }
+        field(22; "Currency Code"; Code[10])
+        {
+            Caption = 'Currency Code', Comment = 'DAN="Valutakode",ESP="Cód. divisa",FRA="Code de devises"';
+            TableRelation = Currency;
+        }
+        field(29; UserGuid; Code[10])
+        {
+            Caption = 'Salesperson Code', Comment = 'DAN="Sælgerkode",DEU="Verkäufercode",ESP="Cód. vendedor",FRA="Code vendeur",SVE="Säljarkod"';
+            TableRelation = "Salesperson/Purchaser";
+            //This property is currently not supported
+            //TestTableRelation = false;
+            ValidateTableRelation = false;
+        }
+        field(35; CountryGuid; Code[10])
+        {
+            Caption = 'Country Guid', Comment = 'DAN="Landekode",DEU="Ländercode",ESP="ID País",FRA="GUID Pays",SVE="Lands Guid"';
+            TableRelation = "Country/Region";
+            //This property is currently not supported
+            //TestTableRelation = false;
+            ValidateTableRelation = false;
+        }
+        field(54; ModifiedDate; Date)
+        {
+            Caption = 'Modified Date', Comment = 'DAN="Rettet den",DEU="Änderungsdatum",ESP="Fecha últ. modificación",FRA="Date dern. modification",SVE="Uppdateringsdatum"';
+        }
+        field(84; FaxNo; Text[30])
+        {
+            Caption = 'Fax No.', Comment = 'DAN="Telefax",DEU="Fax Nr.",ESP="Nº fax",FRA="N° télécopie",SVE="Faxnr"';
+        }
+        field(91; ZipCode; Text[20])
+        {
+            Caption = 'Zip Code', Comment = 'DAN="Postnummer",DEU="Postleitzahl",ESP="CP",FRA="Code Postal",SVE="Postnr"';
+            TableRelation = "Post Code";
+            //This property is currently not supported
+            //TestTableRelation = false;
+            ValidateTableRelation = false;
+        }
+        field(92; CountyGuid; Text[30])
+        {
+            Caption = 'County Guid', Comment = 'DAN="Landekode",DEU="Bundesregionscode",ESP="Cód. País",FRA="Guid Région",SVE="County Guid"';
+        }
+        field(102; EMailAddress; Text[80])
+        {
+            Caption = 'E-Mail', Comment = 'DAN="E-mail",DEU="E-Mail",ESP="E-Mail",FRA="E-mail",SVE="E-post"';
+        }
+        field(103; "Home Page"; Text[80])
+        {
+            Caption = 'Home Page', Comment = 'DAN="Hjemmeside",DEU="Home Page",ESP="Página Web",FRA="Page d''accueil",SVE="Hemsida"';
+        }
+        field(200; "Business Relation Code"; Code[10])
+        {
+            Caption = 'Business Relation Code', Comment = 'DAN="Forretningsrelationskode",DEU="Geschäftsbeziehungscode",ESP="Cód. relación negocio",FRA="Code relation d''affaires",SVE="Affärsrelationskod"';
+            NotBlank = true;
+            TableRelation = "Business Relation";
+
+            trigger OnValidate();
+            var
+                RMSetup: Record "Marketing Setup";
+                Cust: Record Customer;
+                Vend: Record Vendor;
+                BankAcc: Record "Bank Account";
+            begin
+            end;
+        }
+        field(5101; "Salutation Code"; Code[10])
+        {
+            Caption = 'Salutation Code', Comment = 'DAN="Starthilsenkode",DEU="Anredecode",ESP="Cód. saludo",FRA="Code appellation",SVE="Hälsningskod"';
+            TableRelation = Salutation;
+        }
+        field(5104; ModifiedTime; Time)
+        {
+            Caption = 'Modified Time', Comment = 'DAN="Rettet kl.",DEU="Änderungsuhrzeit",ESP="Hora Modificado",FRA="Heure dern. modification",SVE="Ändringstid"';
+        }
+        field(770; "Convert Status"; Option)
+        {
+            Caption = 'Convert Status', Comment = 'DAN="Konverteringsstatus",DEU="Umwandlungsstatus",ESP="Estado de conversión",FRA="Nouveau statut",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected', Comment = 'DAN="Ny,Overført,Afvist",DEU="Neu,umgewandelt,abgelehnt",ESP="Nuevo,Convertido,Rechazado",FRA="Nouveau,Accepté,Rejeté",SVE="Ny,Godkänd,Avbruten"';
+            OptionMembers = New,Converted,Rejected;
+        }
+        field(771; BASGuid; Integer)
+        {
+            Caption = 'BAS Guid', Comment = 'DAN="BAS GUID",DEU="BAS Code",ESP="ID del BAS",FRA="Guid BAS",SVE="BAS Guid"';
+        }
+        field(772; RecordAction; Text[15])
+        {
+            Caption = 'Record Action', Comment = 'DAN="Post-handling",DEU="Datensatzaktion",ESP="Acción Registro",FRA="Action sur l''enregistrement",SVE="Posthantering"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; BASGuid)
+        {
+        }
+        key(Key2; CompanyGuid, RecordAction)
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

@@ -1,0 +1,300 @@
+table 78773 "ECRM Opportunity Header"
+{
+    // version EMCRM3.01.02
+
+    // EMCRM3.01 2012-05-14 PB * Features for Sales 4
+    // EMCRM3.01.01 2012-11-01  PB  * Moved to NAV 2013 (NAVW17.00)
+    // EMCRM3.01.02  2018-02-01  FAM * DAN/DEU/FRA/ESP/SVE in now added to labels and textConstants.
+
+
+    fields
+    {
+        field(1; OpportunityGuid; Code[20])
+        {
+            Caption = 'No.', Comment = 'DAN="Nummer",DEU="Nr.",ESP="Nº",FRA="N°",SVE="Nr."';
+        }
+        field(2; Description; Text[50])
+        {
+            Caption = 'Description', Comment = 'ESP="Descripción"';
+        }
+        field(3; UserGuid; Code[10])
+        {
+            Caption = 'UserGuid', Comment = 'ESP="UserGuid"';
+            TableRelation = "Salesperson/Purchaser";
+        }
+        field(4; "Sales Person"; Code[10])
+        {
+            Caption = 'Sales Person', Comment = 'ESP="Vendedor"';
+        }
+        field(5; ContactPersonGuid; Code[20])
+        {
+            Caption = 'Contact No.', Comment = 'DAN="Kontaktnr.",DEU="Kontaktnr.",ESP="Nº contacto",FRA="N° contact",SVE="Kontaktnr"';
+            TableRelation = Contact."No.";
+
+            trigger OnLookup();
+            var
+                Cont: Record Contact;
+            begin
+            end;
+
+            trigger OnValidate();
+            var
+                Cont: Record Contact;
+                Todo: Record "To-do";
+                OppEntry: Record "Opportunity Entry";
+                SalesHeader: Record "Sales Header";
+            begin
+            end;
+        }
+        field(6; CompanyGuid; Code[20])
+        {
+            Caption = 'Contact Company No.', Comment = 'DAN="Virksomhedsnummer",DEU="Kontakt Unternehmensnr.",ESP="Nº empresa contacto",FRA="N° société contact",SVE="Kontaktföretag nr"';
+            TableRelation = Contact WHERE(Type = CONST(Company));
+        }
+        field(7; SalesCycleGuid; Code[10])
+        {
+            Caption = 'Sales Cycle Code', Comment = 'DAN="Salgsproceskode",DEU="Verkaufsprozesscode",ESP="Cód. ciclo ventas",FRA="Code cycle de vente",SVE="Förs.cykelkod"';
+            TableRelation = "Sales Cycle";
+
+            trigger OnValidate();
+            var
+                SalesCycle: Record "Sales Cycle";
+            begin
+            end;
+        }
+        field(8; DocumentGuid; Code[20])
+        {
+            Caption = 'Sales Document No.', Comment = 'DAN="Salgsbilagsnr.",DEU="Verkaufsbelegnr.",ESP="Nº documento venta",FRA="N° document vente",SVE="Förs.dokumentnr"';
+
+            trigger OnValidate();
+            var
+                Opp: Record Opportunity;
+                SalesHeader: Record "Sales Header";
+            begin
+            end;
+        }
+        field(9; CustomerGuid; Code[20])
+        {
+        }
+        field(10; OpportunityStatusGuid; Option)
+        {
+            Caption = 'Status', Comment = 'DAN="Status",DEU="Status",ESP="Estado",FRA="Statut",SVE="Status"';
+            Editable = true;
+            OptionCaption = 'Not Started,In Progress,Won,Lost', Comment = 'DAN="Ikke startet,Igangsat,Vundet,Tabt",DEU="Nicht begonnen,In Bearbeitung,Gewonnen,Verloren",ESP="No iniciado,En progreso,Ganado,Perdido",FRA="Non démarrée,En cours,Gagnée,Perdue",SVE="Ej påbörjad,Pågående,Vunnen,Förlorad"';
+            OptionMembers = "Not Started","In Progress",Won,Lost;
+        }
+        field(11; PriorityGuid; Option)
+        {
+            Caption = 'Priority', Comment = 'DAN="Prioritet",DEU="Priorität",ESP="Prioridad",FRA="Priorité",SVE="Prioritet"';
+            InitValue = Normal;
+            OptionCaption = 'Low,Normal,High', Comment = 'DAN="Lav,Normal,Høj",DEU="Niedrig,Normal,Hoch",ESP="Baja,Normal,Alta",FRA="Faible,Normale,Haute",SVE="Låg,Normal,Hög"';
+            OptionMembers = Low,Normal,High;
+        }
+        field(12; Closed; Boolean)
+        {
+            Caption = 'Closed', Comment = 'DAN="Lukket",DEU="Abgeschlossen",ESP="Cerrado",FRA="Terminée",SVE="Avslutat"';
+        }
+        field(17; SalesCycleStageGuid; Integer)
+        {
+            Caption = 'Sales Cycle Stage', Comment = 'DAN="Salgsprocesfase",DEU="Verkaufsprozess-Stufe",ESP="Etapa ciclo ventas",FRA="Etape cycle de vente",SVE="Förs.cykeletapp"';
+            MinValue = 1;
+            TableRelation = "Sales Cycle Stage".Stage WHERE("Sales Cycle Code" = FIELD(SalesCycleGuid));
+        }
+        field(18; EstimatedAmount; Decimal)
+        {
+            AutoFormatType = 1;
+            Caption = 'Estimated Value (LCY)', Comment = 'DAN="Anslået værdi (RV)",DEU="Erwarteter Wert (MW)",ESP="Valor estimado (DL)",FRA="Valeur estimée DS",SVE="Uppskattat värde (BVA)"';
+        }
+        field(19; OpportunityProbability; Decimal)
+        {
+            Caption = 'Probability %', Comment = 'DAN="Sandsynlighed %",DEU="Wahrscheinlichkeit %",ESP="% Probabilidad",FRA="% probabilité",SVE="Sannolikhet %"';
+            DecimalPlaces = 1 : 1;
+        }
+        field(22; CompletionPercentage; Decimal)
+        {
+            Caption = 'Completed %', Comment = 'DAN="Afsluttet %",DEU="Abgeschlossen %",ESP="% Completado",FRA="% réalisé",SVE="Avslutad %"';
+            DecimalPlaces = 0 : 0;
+        }
+        field(28; EstimatedDate; Date)
+        {
+            Caption = 'Estimated Closing Date', Comment = 'DAN="Anslået ultimodato",DEU="Erwartetes Abschlussdatum",ESP="Fecha cierre estimada",FRA="Date de fin prévue",SVE="Troligt avslutsdatum"';
+        }
+        field(29; SalesDocumentType; Option)
+        {
+            Caption = 'Sales Document Type', Comment = 'DAN="Salgsbilagstype",DEU="Verkaufsbelegart",ESP="Tipo doc. venta",FRA="Type document vente",SVE="Förs.dokumenttyp"';
+            OptionCaption = ' ,Quote,Order,Posted Invoice', Comment = 'DAN=" ,Tilbud,Ordre,Bogf. faktura",DEU=" ,Angebot,Auftrag,Gebuchte Rechnung",ESP=" ,Oferta,Pedido,Factura registrada",FRA=" ,Devis,Commande,Facture enregistrée",SVE=" ,Offert,Order,Bokförd faktura"';
+            OptionMembers = " ",Quote,"Order","Posted Invoice";
+        }
+        field(30; SellToCustTemplateCode; Code[10])
+        {
+            Caption = 'SellToCustTemplateCode', Comment = 'ESP="SellToCustTemplateCode"';
+        }
+        field(31; "No. Printed"; Integer)
+        {
+            Caption = 'No. Printed', Comment = 'DAN="Udskrevet",ESP="Nº copias impresas",FRA="Nbre impressions"';
+            Editable = false;
+        }
+        field(32; NewDocNoInNAV; Code[20])
+        {
+            Caption = 'NewDocNoInNAV', Comment = 'ESP="Nuevo No. de Documento en NAV"';
+        }
+        field(33; CurrencyGuid; Code[10])
+        {
+            Caption = 'CurrencyGuid', Comment = 'ESP="CurrencyGuid"';
+        }
+        field(40; CompositeKeyType; Integer)
+        {
+            Caption = 'CompositeKeyType', Comment = 'ESP="Tipo de Clave Compuesta"';
+        }
+        field(41; CompositeKey; Code[20])
+        {
+            Caption = 'CompositeKey', Comment = 'ESP="Clave Compuesta"';
+        }
+        field(42; FromCompositeKeyType; Integer)
+        {
+            Caption = 'FromCompositeKeyType', Comment = 'ESP="Desde Tipo de Clave Compuesta"';
+        }
+        field(43; FromCompositeKey; Code[20])
+        {
+            Caption = 'FromCompositeKey', Comment = 'ESP="Desde Clave Compuesta"';
+        }
+        field(45; CloseOpportunityCode; Code[10])
+        {
+            Caption = 'CloseOpportunityCode', Comment = 'ESP="Código de Oportunidad Cerrada"';
+        }
+        field(46; "BMP Signature"; BLOB)
+        {
+            Caption = 'BMP Signature', Comment = 'DAN="BMP Underskrift",DEU="BMP Unterschrift",ESP="Firma BMP",FRA="Signature BMP",SVE="BMP Signatur"';
+            Compressed = false;
+            SubType = Bitmap;
+        }
+        field(47; OrderDate; Date)
+        {
+            Caption = 'OrderDate', Comment = 'ESP="Fecha de Pedido"';
+        }
+        field(48; ShipmentDate; Date)
+        {
+            Caption = 'ShipmentDate', Comment = 'ESP="Fecha de Envío"';
+        }
+        field(50; "Ship-to Code"; Code[10])
+        {
+            Caption = 'Ship-to Code', Comment = 'DAN="Leveringsadressekode",ESP="Cód. dirección envío cliente",FRA="Code destinataire"';
+        }
+        field(51; "Ship-to Name"; Text[50])
+        {
+            Caption = 'Ship-to Name', Comment = 'DAN="Leveringsnavn",ESP="Envío a-Nombre",FRA="Nom du destinataire"';
+        }
+        field(52; "Ship-to Name 2"; Text[50])
+        {
+            Caption = 'Ship-to Name 2', Comment = 'DAN="Leveringsnavn 2",ESP="Envío a-Nombre 2",FRA="Nom du destinataire 2"';
+        }
+        field(53; "Ship-to Address"; Text[50])
+        {
+            Caption = 'Ship-to Address', Comment = 'DAN="Leveringsadresse",ESP="Envío a-Dirección",FRA="Adresse destinataire"';
+        }
+        field(54; "Ship-to Address 2"; Text[50])
+        {
+            Caption = 'Ship-to Address 2', Comment = 'DAN="Leveringsadresse 2",ESP="Envío a-Dirección 2",FRA="Adresse destinataire 2"';
+        }
+        field(55; "Ship-to City"; Text[30])
+        {
+            Caption = 'Ship-to City', Comment = 'DAN="Leveringsby",ESP="Envío a-Población",FRA="Ville destinataire"';
+        }
+        field(56; "Ship-to Contact"; Text[50])
+        {
+            Caption = 'Ship-to Contact', Comment = 'DAN="Leveres attention",ESP="Envío a-Atención",FRA="Contact destinataire"';
+        }
+        field(57; "Ship-to Post Code"; Code[20])
+        {
+            Caption = 'Ship-to Post Code', Comment = 'DAN="Leveringspostnr.",ESP="Envío a-C.P.",FRA="Code postal destinataire"';
+            TableRelation = "Post Code";
+            //This property is currently not supported
+            //TestTableRelation = false;
+            ValidateTableRelation = false;
+        }
+        field(58; "Ship-to County"; Text[30])
+        {
+            Caption = 'Ship-to County', Comment = 'DAN="Leveringsamt",ESP="Envío a-Provincia",FRA="Région destinataire"';
+        }
+        field(59; "Ship-to Country/Region Code"; Code[10])
+        {
+            Caption = 'Ship-to Country/Region Code', Comment = 'DAN="Lande-/områdekode for levering",ESP="Envío a-Cód. país",FRA="Code pays/région destinataire"';
+            TableRelation = "Country/Region";
+        }
+        field(60; "Document Status"; Option)
+        {
+            Caption = 'Status', Comment = 'DAN="Status",ESP="Estado",FRA="Statut"';
+            OptionCaption = 'Open,Released,Pending Approval,Pending Prepayment', Comment = 'DAN="Åben,Frigivet,Afventer godkendelse,Afventer forudbetaling",ESP="Abierto,Lanzado,Pendiente de Aprobación,Pendiente de Prepago",FRA="Ouvert,Lancé,Approbation suspendue,Acompte suspendu"';
+            OptionMembers = Open,Released,"Pending Approval","Pending Prepayment";
+        }
+        field(61; CustomerReference; Text[30])
+        {
+            Caption = 'CustomerReference', Comment = 'ESP="ReferenciaCliente"';
+        }
+        field(62; "Bill-to Customer No."; Code[20])
+        {
+            Caption = 'Bill-to Customer No.', Comment = 'DAN="Faktureres til kundenr.",ESP="Factura-a Nº cliente",FRA="N° client facturé"';
+            NotBlank = true;
+            TableRelation = Customer;
+        }
+        field(63; "Payment Terms Code"; Code[10])
+        {
+            Caption = 'Payment Terms Code', Comment = 'DAN="Betalingsbeting.kode",ESP="Cód. términos pago",FRA="Code condition paiement"';
+            TableRelation = "Payment Terms";
+        }
+        field(64; "Customer Price Group"; Code[10])
+        {
+            Caption = 'Customer Price Group', Comment = 'DAN="Debitorprisgruppe",ESP="Grupo precio cliente",FRA="Groupe prix client"';
+            TableRelation = "Customer Price Group";
+        }
+        field(65; "Invoice Disc. Code"; Code[20])
+        {
+            Caption = 'Invoice Disc. Code', Comment = 'DAN="Fakturarabatkode",ESP="Cód. dto. factura",FRA="Code remise facture"';
+        }
+        field(66; "Customer Disc. Group"; Code[10])
+        {
+            Caption = 'Customer Disc. Group', Comment = 'DAN="Debitorrabatgruppe",ESP="Grupo dto. cliente",FRA="Groupe rem. client"';
+            TableRelation = "Customer Discount Group";
+        }
+        field(5009; ModifiedDate; Date)
+        {
+            Caption = 'Modified Date', Comment = 'DAN="Rettet den",DEU="Korrigiert am",ESP="Fecha últ. modificación",FRA="Date dern. modification",SVE="Uppdateringsdatum"';
+        }
+        field(5010; ModifiedTime; Time)
+        {
+            Caption = 'ModifiedTime', Comment = 'ESP="Hora modificación"';
+        }
+        field(770; "Convert Status"; Option)
+        {
+            Caption = 'Convert Status', Comment = 'DAN="Konverteringsstatus",DEU="Umwandlungsstatus",ESP="Estado de conversión",FRA="Nouveau statut",SVE="Konverteringsstatus"';
+            OptionCaption = 'New,Converted,Rejected', Comment = 'DAN="Ny,Overført,Afvist",DEU="Neu,umgewandelt,abgelehnt",ESP="Nuevo,Convertido,Rechazado",FRA="Nouveau,Accepté,Rejeté",SVE="Ny,Godkänd,Avbruten"';
+            OptionMembers = New,Converted,Rejected;
+        }
+        field(771; BASGuid; Integer)
+        {
+            Caption = 'BASGuid', Comment = 'ESP="BASGuid"';
+        }
+        field(772; RecordAction; Text[15])
+        {
+            Caption = 'RecordAction', Comment = 'ESP="Grabar Acción"';
+        }
+    }
+
+    keys
+    {
+        key(Key1; BASGuid)
+        {
+        }
+        key(Key2; CompositeKeyType, CompositeKey, NewDocNoInNAV)
+        {
+        }
+        key(Key3; CompositeKeyType, CompositeKey, RecordAction)
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+

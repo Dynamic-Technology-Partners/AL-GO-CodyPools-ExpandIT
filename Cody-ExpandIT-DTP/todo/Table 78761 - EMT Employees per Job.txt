@@ -1,0 +1,32 @@
+table 78761 "EMT Employees per Job"
+{
+    // version EMT2.13
+
+    Caption = 'EMT Employees per Job', Comment = 'DAN="EMT Medarbejder pr. Sag",DEU="Mitarbeiter per Aufgabe",ESP="Empleados por trabajo en EMT",FRA="Salariés par projet EMT",SVE="EMT anställda per projekt"';
+
+    fields
+    {
+        field(3; "Job No."; Code[20])
+        {
+            Caption = 'Job No.', Comment = 'DAN="Sagsnr.",DEU="Aufgaben-Nr",ESP="Num. de trabajo",FRA="N° projet",SVE="Projektnr"';
+            TableRelation = Job."No.";
+        }
+        field(4; "Employee No."; Code[20])
+        {
+            Caption = 'Employee No.', Comment = 'DAN="Medarbejdernr.",DEU="Mitarbeiter-Nr.",ESP="Num. de empleado",FRA="N° salarié",SVE="Anställningsnr"';
+            TableRelation = Employee."No." WHERE("Resource No." = FILTER(<> ''));
+        }
+    }
+
+    keys
+    {
+        key(Key1; "Job No.", "Employee No.")
+        {
+        }
+    }
+
+    fieldgroups
+    {
+    }
+}
+
